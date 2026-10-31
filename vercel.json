@@ -1,0 +1,7 @@
+{
+  "installCommand": "npm install",
+  "buildCommand": "npm run build:hosted",
+  "outputDirectory": "apps/overlay/dist-hosted",
+  "rewrites": [{ "source": "/overlay", "destination": "/index.html" }],
+  "headers": [{ "source": "/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }]
+}
