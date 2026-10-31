@@ -128,3 +128,98 @@
 }
 [data-theme='warm-acoustic'] .person-label { color: #ffd9a0; letter-spacing: 0.04em; text-transform: none; font-weight: 600; }
 @keyframes warm-in { from { opacity: 0; transform: translateY(40px) scale(0.96); } to { opacity: 1; transform: none; } }
+
+/* ===================== ŞİİR ATMOSFERLERİ: metin değil, görsel sahne ===================== */
+.poem-atmosphere { position: absolute; inset: 0; font-family: var(--mk-font, var(--theme-font)); color: #fff; }
+.poem-visual { position: absolute; inset: 0; opacity: 0.9; animation: poem-visual-in 1.3s ease-out both; }
+.poem-visual i { position: absolute; display: block; }
+.poem-photo { position: absolute; display: block; opacity: var(--poem-photo-opacity, 0.72); animation: poem-visual-in 1.1s ease-out both; }
+.poem-photo.mode-background { inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.poem-photo.mode-card { left: 15%; top: 21%; width: 70%; height: 52%; object-fit: contain; border-radius: 26px; filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.72)); }
+.poem-reader-panel { position: absolute; left: 0; bottom: 10px; max-width: 72%; padding: 20px 34px; animation: poem-panel-in 0.8s ease-out both; }
+.poem-panel-label { font-size: 26px; line-height: 1; text-transform: uppercase; letter-spacing: 0.12em; opacity: 0.78; }
+.poem-reader-name { margin-top: 8px; font-size: 50px; line-height: 1.1; overflow-wrap: anywhere; }
+.poem-next-panel { position: absolute; right: 0; bottom: 10px; max-width: 42%; padding: 14px 22px; text-align: right; animation: poem-panel-in 0.8s 0.15s ease-out both; }
+.poem-next-panel span { display: block; font-size: 22px; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.72; }
+.poem-next-panel strong { display: block; margin-top: 4px; font-size: 32px; overflow-wrap: anywhere; }
+.poem-atmosphere.status-waiting .poem-reader-panel { opacity: 0.78; }
+.poem-atmosphere.status-finished .poem-reader-panel { opacity: 0.68; transform: translateY(8px); }
+
+/* Yağmur: kenarlarda ince, yarı saydam damla izleri. */
+.poem-atmosphere[data-poem-theme='rain'] .poem-visual { border-left: 5px solid rgba(126, 190, 226, 0.5); border-right: 5px solid rgba(126, 190, 226, 0.5); box-shadow: inset 34px 0 48px -40px #8ed8ff, inset -34px 0 48px -40px #8ed8ff; }
+.poem-atmosphere[data-poem-theme='rain'] .poem-visual i { width: 3px; height: 150px; border-radius: 3px; background: linear-gradient(transparent, rgba(180, 225, 248, 0.85), transparent); transform: rotate(10deg); }
+.poem-atmosphere[data-poem-theme='rain'] .poem-visual i:nth-child(1) { left: 34px; top: 18%; }
+.poem-atmosphere[data-poem-theme='rain'] .poem-visual i:nth-child(2) { left: 86px; top: 43%; height: 210px; }
+.poem-atmosphere[data-poem-theme='rain'] .poem-visual i:nth-child(3) { right: 48px; top: 28%; height: 190px; }
+.poem-atmosphere[data-poem-theme='rain'] .poem-visual i:nth-child(4) { right: 100px; top: 62%; height: 130px; }
+.poem-atmosphere[data-poem-theme='rain'] .poem-reader-panel, .poem-atmosphere[data-poem-theme='rain'] .poem-next-panel { background: rgba(12, 29, 48, 0.76); border-top: 2px solid #78b7da; color: #e1f5ff; }
+
+/* Sonbahar: köşelerde yaprak benzeri bakır şekiller. */
+.poem-atmosphere[data-poem-theme='autumn'] .poem-visual { border: 4px solid rgba(190, 103, 49, 0.55); box-shadow: inset 0 0 50px -34px #e69a55; }
+.poem-atmosphere[data-poem-theme='autumn'] .poem-visual i { width: 52px; height: 30px; border-radius: 90% 10% 90% 10%; background: #b96832; opacity: 0.8; }
+.poem-atmosphere[data-poem-theme='autumn'] .poem-visual i:nth-child(1) { left: 24px; top: 30px; transform: rotate(20deg); }
+.poem-atmosphere[data-poem-theme='autumn'] .poem-visual i:nth-child(2) { left: 64px; top: 70px; transform: rotate(78deg); background: #d49a4a; }
+.poem-atmosphere[data-poem-theme='autumn'] .poem-visual i:nth-child(3) { right: 28px; top: 36px; transform: rotate(130deg); }
+.poem-atmosphere[data-poem-theme='autumn'] .poem-visual i:nth-child(4) { right: 72px; top: 78px; transform: rotate(52deg); background: #d49a4a; }
+.poem-atmosphere[data-poem-theme='autumn'] .poem-reader-panel, .poem-atmosphere[data-poem-theme='autumn'] .poem-next-panel { background: rgba(53, 27, 14, 0.8); border-top: 2px solid #d58b4d; color: #ffe5bd; }
+
+/* Gece: ay ışığı ve ince yıldız noktaları. */
+.poem-atmosphere[data-poem-theme='night'] .poem-visual { border: 3px solid rgba(118, 118, 188, 0.5); box-shadow: inset 0 0 62px -45px #aaa5ff; }
+.poem-atmosphere[data-poem-theme='night'] .poem-visual i:first-child { right: 38px; top: 38px; width: 82px; height: 82px; border-radius: 50%; background: #ece9ff; box-shadow: 0 0 28px rgba(205, 201, 255, 0.7); }
+.poem-atmosphere[data-poem-theme='night'] .poem-visual i:not(:first-child) { width: 7px; height: 7px; border-radius: 50%; background: #fff; box-shadow: 0 0 10px #c9c5ff; }
+.poem-atmosphere[data-poem-theme='night'] .poem-visual i:nth-child(2) { left: 58px; top: 90px; }
+.poem-atmosphere[data-poem-theme='night'] .poem-visual i:nth-child(3) { left: 122px; top: 44%; }
+.poem-atmosphere[data-poem-theme='night'] .poem-visual i:nth-child(4) { right: 80px; top: 42%; }
+.poem-atmosphere[data-poem-theme='night'] .poem-reader-panel, .poem-atmosphere[data-poem-theme='night'] .poem-next-panel { background: rgba(13, 14, 48, 0.8); border-top: 2px solid #8c88d2; color: #f0eeff; }
+
+/* Nostalji: ince çift çerçeve ve klasik köşe işaretleri. */
+.poem-atmosphere[data-poem-theme='nostalgia'] .poem-visual { border: 5px double rgba(188, 145, 99, 0.72); box-shadow: inset 0 0 54px -38px #d1aa7d; }
+.poem-atmosphere[data-poem-theme='nostalgia'] .poem-visual i { width: 34px; height: 34px; border: 3px solid #b58a60; transform: rotate(45deg); opacity: 0.8; }
+.poem-atmosphere[data-poem-theme='nostalgia'] .poem-visual i:nth-child(1) { left: 18px; top: 18px; }
+.poem-atmosphere[data-poem-theme='nostalgia'] .poem-visual i:nth-child(2) { right: 18px; top: 18px; }
+.poem-atmosphere[data-poem-theme='nostalgia'] .poem-visual i:nth-child(3) { left: 18px; bottom: 18px; }
+.poem-atmosphere[data-poem-theme='nostalgia'] .poem-visual i:nth-child(4) { right: 18px; bottom: 18px; }
+.poem-atmosphere[data-poem-theme='nostalgia'] .poem-reader-panel, .poem-atmosphere[data-poem-theme='nostalgia'] .poem-next-panel { background: rgba(48, 34, 26, 0.82); border: 2px solid #a67c52; color: #f1dfc3; font-family: Georgia, 'Times New Roman', serif; }
+
+@keyframes poem-visual-in { from { opacity: 0; transform: scale(1.02); } to { opacity: 0.9; transform: none; } }
+@keyframes poem-panel-in { from { opacity: 0; transform: translateY(34px); } to { opacity: 1; transform: none; } }
+
+/* ===================== FAZ 1C MODÜL SAHNELERİ ===================== */
+.module-scene { position: absolute; inset: 0; font-family: var(--mk-font, var(--theme-font)); color: #fff; }
+.module-kicker { font-size: 24px; text-transform: uppercase; letter-spacing: 0.16em; opacity: 0.78; }
+.module-main-text { margin-top: 18px; max-width: 100%; line-height: 1.14; overflow-wrap: anywhere; }
+
+.contest-card { position: absolute; left: 5%; right: 5%; top: 30%; padding: 34px 40px; text-align: center; border: 3px solid #8b5cf6; border-radius: 26px; background: rgba(18, 9, 42, 0.84); box-shadow: 0 0 26px rgba(139, 92, 246, 0.45); animation: module-card-in 0.65s ease-out both; }
+.contest-hint { margin-top: 22px; padding: 13px 18px; border-radius: 14px; background: rgba(56, 189, 248, 0.16); color: #bdeaff; font-size: 34px; }
+.contest-reveal { margin-top: 24px; padding: 18px; border-radius: 16px; background: rgba(62, 207, 142, 0.18); border: 2px solid #3ecf8e; }
+.contest-reveal span, .contest-reveal strong { display: block; }
+.contest-reveal span { font-size: 24px; text-transform: uppercase; letter-spacing: 0.12em; color: #9ff2c9; }
+.contest-reveal strong { margin-top: 7px; font-size: 52px; }
+.contest-timer { position: absolute; left: 50%; bottom: -52px; width: 104px; height: 104px; display: grid; place-items: center; border-radius: 50%; transform: translateX(-50%); background: #17102c; border: 5px solid #38bdf8; box-shadow: 0 0 22px rgba(56, 189, 248, 0.65); font: 800 48px/1 Bahnschrift, 'Segoe UI', sans-serif; }
+.contest-timer.urgent { color: #ffb4b4; border-color: #ef5b5b; animation: timer-pulse 0.8s ease-in-out infinite alternate; }
+.overlay-scoreboard { position: absolute; left: 0; bottom: 0; width: 52%; padding: 18px 24px; border: 2px solid #8b5cf6; border-radius: 16px; background: rgba(18, 9, 42, 0.86); animation: module-card-in 0.65s 0.12s ease-out both; }
+.overlay-score { display: flex; justify-content: space-between; gap: 20px; padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,0.16); font-size: 29px; }
+.overlay-score:last-child { border-bottom: 0; }
+.overlay-score strong { color: #7dd3fc; }
+.winner-banner { position: absolute; left: 8%; right: 8%; top: 43%; padding: 34px; text-align: center; border: 4px solid #f4d35e; border-radius: 28px; background: rgba(35, 24, 5, 0.94); box-shadow: 0 0 38px rgba(244, 211, 94, 0.75); animation: winner-in 0.85s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.winner-banner span, .winner-banner strong { display: block; }
+.winner-banner span { font-size: 34px; text-transform: uppercase; letter-spacing: 0.16em; color: #f4d35e; }
+.winner-banner strong { margin-top: 12px; font-size: 78px; }
+
+.topic-card { position: absolute; left: 6%; right: 6%; top: 30%; padding: 32px 38px; text-align: center; border-radius: 28px; border: 3px solid #e0a45a; background: rgba(48, 29, 17, 0.84); box-shadow: 0 12px 28px rgba(0,0,0,0.52); animation: module-card-in 0.75s ease-out both; }
+.question-card { position: absolute; left: 10%; right: 10%; bottom: 4%; min-height: 210px; display: flex; align-items: center; gap: 24px; padding: 28px 34px; border-radius: 30px; border: 3px solid #ffd9a0; background: rgba(59, 38, 22, 0.88); animation: module-card-in 0.75s 0.12s ease-out both; }
+.question-mark { flex: none; width: 82px; height: 82px; display: grid; place-items: center; border-radius: 50%; background: #e0a45a; color: #2c1708; font: 800 58px/1 Georgia, serif; }
+.chat-question-text { flex: 1; line-height: 1.18; overflow-wrap: anywhere; }
+
+.turku-card { position: absolute; left: 4%; right: 4%; top: 33%; padding: 34px 42px; text-align: center; border-radius: 34px; border: 3px solid #e0a45a; background: rgba(53, 34, 20, 0.86); box-shadow: 0 16px 32px rgba(0,0,0,0.58); animation: module-card-in 0.8s ease-out both; }
+.turku-artist { margin-top: 16px; font-size: 43px; color: #ffd9a0; }
+.turku-meta { margin-top: 14px; font-size: 28px; opacity: 0.82; }
+.turku-next { position: absolute; right: 0; bottom: 0; max-width: 54%; padding: 17px 25px; text-align: right; border-radius: 18px 0 0 18px; border: 2px solid #e0a45a; background: rgba(53, 34, 20, 0.88); animation: module-card-in 0.7s 0.12s ease-out both; }
+.turku-next span, .turku-next strong, .turku-next small { display: block; }
+.turku-next span { font-size: 21px; text-transform: uppercase; letter-spacing: 0.12em; opacity: 0.75; }
+.turku-next strong { margin-top: 4px; font-size: 35px; }
+.turku-next small { margin-top: 3px; font-size: 22px; opacity: 0.8; }
+
+@keyframes module-card-in { from { opacity: 0; transform: translateY(34px) scale(0.98); } to { opacity: 1; transform: none; } }
+@keyframes winner-in { from { opacity: 0; transform: scale(0.72); } to { opacity: 1; transform: none; } }
+@keyframes timer-pulse { from { transform: translateX(-50%) scale(1); } to { transform: translateX(-50%) scale(1.08); } }

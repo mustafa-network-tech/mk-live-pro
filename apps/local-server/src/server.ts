@@ -5,8 +5,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { Duplex } from 'node:stream';
 import { WebSocketServer, WebSocket } from 'ws';
+import { MEDIA_LIMITS } from '../../../packages/shared/src/index.ts';
 import type { ClientMessage, ServerMessage } from '../../../packages/shared/src/index.ts';
 import { createStore } from './store.ts';
+import { createPoemStore } from './poem-store.ts';
+import { createMediaStore } from './media-store.ts';
+import { createAudioStore } from './audio-store.ts';
 
 const HOST = '127.0.0.1';
 const PORT = Number(process.env.PORT) || 4173;
@@ -17,6 +21,7 @@ const APPS: Record<string, string> = {
   '/overlay': path.join(ROOT, 'apps/overlay/dist'),
 };
 const MAX_BODY = 64 * 1024;
+const MAX_LIBRARY_BODY = 12 * 1024 * 1024;
 
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -32,6 +37,9 @@ const MIME: Record<string, string> = {
 };
 
 const store = createStore(DATA_DIR);
+const poemStore = createPoemStore(DATA_DIR);
+const mediaStore = createMediaStore(DATA_DIR);
+const audioStore = createAudioStore(DATA_DIR);
 
 // Opsiyonel: data/config.json -> { "overlayOrigins": ["https://proje.vercel.app"] }
 // Bu adreslerden gelen bağlantılar yalnızca overlay (salt okunur) olarak kabul edilir.
@@ -66,6 +74,24 @@ function send(res: http.ServerResponse, status: number, body: string | Buffer, t
 const json = (res: http.ServerResponse, status: number, data: unknown) =>
   send(res, status, JSON.stringify(data), 'application/json; charset=utf-8');
 
+function sendAudio(req: http.IncomingMessage, res: http.ServerResponse, data: Buffer, type: string) {
+  const range = req.headers.range;
+  if (!range) return send(res, 200, data, type, { 'Accept-Ranges': 'bytes', 'Content-Length': data.length });
+  const match = /^bytes=(\d+)-(\d*)$/.exec(range);
+  if (!match) return send(res, 416, 'Geçersiz aralık', 'text/plain; charset=utf-8', { 'Content-Range': `bytes */${data.length}` });
+  const start = Number(match[1]);
+  const end = match[2] ? Math.min(Number(match[2]), data.length - 1) : data.length - 1;
+  if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || start > end || start >= data.length) {
+    return send(res, 416, 'Geçersiz aralık', 'text/plain; charset=utf-8', { 'Content-Range': `bytes */${data.length}` });
+  }
+  const chunk = data.subarray(start, end + 1);
+  return send(res, 206, chunk, type, {
+    'Accept-Ranges': 'bytes',
+    'Content-Range': `bytes ${start}-${end}/${data.length}`,
+    'Content-Length': chunk.length,
+  });
+}
+
 function serveStatic(res: http.ServerResponse, mount: string, dir: string, urlPath: string) {
   let rel = urlPath.slice(mount.length);
   if (rel === '' || rel === '/') rel = '/index.html';
@@ -93,20 +119,24 @@ function serveStatic(res: http.ServerResponse, mount: string, dir: string, urlPa
   });
 }
 
-function readBody(req: http.IncomingMessage): Promise<string> {
+function readBuffer(req: http.IncomingMessage, maxSize = MAX_BODY): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     let size = 0;
     const chunks: Buffer[] = [];
     req.on('data', (c: Buffer) => {
       size += c.length;
-      if (size > MAX_BODY) {
+      if (size > maxSize) {
         reject(new Error('too large'));
         req.destroy();
       } else chunks.push(c);
     });
-    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+    req.on('end', () => resolve(Buffer.concat(chunks)));
     req.on('error', reject);
   });
+}
+
+async function readBody(req: http.IncomingMessage, maxSize = MAX_BODY): Promise<string> {
+  return (await readBuffer(req, maxSize)).toString('utf8');
 }
 
 const server = http.createServer(async (req, res) => {
@@ -115,6 +145,78 @@ const server = http.createServer(async (req, res) => {
   const p = url.pathname;
 
   if (p === '/api/health') return json(res, 200, { ok: true, rev: store.get().rev, clients: wss.clients.size });
+  if (p === '/api/poems') {
+    if (!originOk(req)) return json(res, 403, { error: 'origin' });
+    if (req.method === 'GET') return json(res, 200, poemStore.get());
+    if (req.method === 'PUT') {
+      try {
+        return json(res, 200, poemStore.replace(JSON.parse(await readBody(req, MAX_LIBRARY_BODY))));
+      } catch {
+        return json(res, 400, { error: 'geçersiz şiir kütüphanesi' });
+      }
+    }
+    return json(res, 405, { error: 'method' });
+  }
+  if (p === '/api/media') {
+    if (!originOk(req)) return json(res, 403, { error: 'origin' });
+    if (req.method === 'GET') return json(res, 200, mediaStore.list());
+    if (req.method === 'POST') {
+      try {
+        const mime = String(req.headers['content-type'] ?? '').split(';')[0].toLowerCase();
+        const rawName = String(req.headers['x-mk-filename'] ?? 'Görsel');
+        let name = rawName;
+        try { name = decodeURIComponent(rawName); } catch { /* ham adı kullan */ }
+        const item = mediaStore.add(name, mime, await readBuffer(req, MEDIA_LIMITS.bytes));
+        return json(res, 201, item);
+      } catch (err) {
+        return json(res, 400, { error: (err as Error).message });
+      }
+    }
+    return json(res, 405, { error: 'method' });
+  }
+  if (p.startsWith('/api/media/')) {
+    if (!originOk(req)) return json(res, 403, { error: 'origin' });
+    const id = p.slice('/api/media/'.length);
+    if (req.method === 'GET') {
+      const media = mediaStore.read(id);
+      return media
+        ? media.item.mime.startsWith('video/') ? sendAudio(req, res, media.data, media.item.mime) : send(res, 200, media.data, media.item.mime)
+        : send(res, 404, 'Görsel bulunamadı');
+    }
+    if (req.method === 'DELETE') {
+      return mediaStore.remove(id) ? json(res, 200, { ok: true }) : json(res, 404, { error: 'bulunamadı' });
+    }
+    return json(res, 405, { error: 'method' });
+  }
+  if (p === '/api/audio') {
+    if (!originOk(req)) return json(res, 403, { error: 'origin' });
+    if (req.method === 'GET') return json(res, 200, audioStore.list());
+    if (req.method === 'POST') {
+      try {
+        const mime = String(req.headers['content-type'] ?? '').split(';')[0].toLowerCase();
+        const rawName = String(req.headers['x-mk-filename'] ?? 'Fon müziği');
+        let name = rawName;
+        try { name = decodeURIComponent(rawName); } catch { /* ham adı kullan */ }
+        const item = audioStore.add(name, mime, await readBuffer(req, 25 * 1024 * 1024));
+        return json(res, 201, item);
+      } catch (err) {
+        return json(res, 400, { error: (err as Error).message });
+      }
+    }
+    return json(res, 405, { error: 'method' });
+  }
+  if (p.startsWith('/api/audio/')) {
+    if (!originOk(req)) return json(res, 403, { error: 'origin' });
+    const id = p.slice('/api/audio/'.length);
+    if (req.method === 'GET') {
+      const audio = audioStore.read(id);
+      return audio ? sendAudio(req, res, audio.data, audio.item.mime) : send(res, 404, 'Ses dosyası bulunamadı');
+    }
+    if (req.method === 'DELETE') {
+      return audioStore.remove(id) ? json(res, 200, { ok: true }) : json(res, 404, { error: 'bulunamadı' });
+    }
+    return json(res, 405, { error: 'method' });
+  }
   if (p === '/api/state') {
     if (req.method === 'GET') return json(res, 200, store.get());
     if (req.method === 'PUT') {
@@ -161,11 +263,15 @@ server.on('upgrade', (req: http.IncomingMessage, socket: Duplex, head: Buffer) =
   wss.handleUpgrade(req, socket, head, (ws) => {
     ws.send(JSON.stringify({ type: 'state', state: store.get() } satisfies ServerMessage));
     ws.on('message', (raw) => {
-      // Yalnızca stüdyo değişiklik yapabilir; overlay salt okunur.
-      if (role !== 'studio') return;
       try {
         const msg = JSON.parse(raw.toString()) as ClientMessage;
-        if (msg.type !== 'patch') return;
+        if (msg.type === 'media:get') {
+          const media = mediaStore.read(msg.id);
+          if (media) ws.send(JSON.stringify({ type: 'media', id: media.item.id, mime: media.item.mime, data: media.data.toString('base64') } satisfies ServerMessage));
+          return;
+        }
+        // Yalnızca stüdyo yayın durumunu değiştirebilir; overlay salt okunur.
+        if (role !== 'studio' || msg.type !== 'patch') return;
         const next = store.patch(msg.patch);
         if (next) broadcast({ type: 'state', state: next });
       } catch {
@@ -195,6 +301,7 @@ server.listen(PORT, HOST, () => {
 function shutdown() {
   clearInterval(heartbeat);
   store.flush();
+  poemStore.flush();
   process.exit(0);
 }
 process.on('SIGINT', shutdown);

@@ -6,6 +6,11 @@ import { Dashboard } from './pages/Dashboard.tsx';
 import { Designer } from './pages/Designer.tsx';
 import { BroadcastSettings } from './pages/BroadcastSettings.tsx';
 import { Placeholder } from './pages/Placeholder.tsx';
+import { PoemStudio } from './pages/PoemStudio.tsx';
+import { AudioDock } from './AudioDock.tsx';
+import { ContestStudio } from './pages/ContestStudio.tsx';
+import { ChatStudio } from './pages/ChatStudio.tsx';
+import { TurkuStudio } from './pages/TurkuStudio.tsx';
 
 export interface PreviewUi {
   guides: boolean;
@@ -29,11 +34,10 @@ function loadUi(): PreviewUi {
 
 const MENU = [
   { id: 'dashboard', label: 'Gösterge Paneli', icon: '▦' },
-  { id: 'siir', label: 'Şiir Stüdyosu', icon: '✒', phase: 'Faz 1B' },
-  { id: 'yarisma', label: 'Yarışma Merkezi', icon: '🏆', phase: 'Faz 1C' },
-  { id: 'sohbet', label: 'Sohbet Stüdyosu', icon: '💬', phase: 'Faz 1C' },
-  { id: 'turku', label: 'Türkü Stüdyosu', icon: '🎻', phase: 'Faz 1C' },
-  { id: 'sarki', label: 'Şarkı Stüdyosu', icon: '🎤', phase: 'Faz 1C' },
+  { id: 'siir', label: 'Şiir Stüdyosu', icon: '✒' },
+  { id: 'yarisma', label: 'Yarışma Merkezi', icon: '🏆' },
+  { id: 'sohbet', label: 'Sohbet Stüdyosu', icon: '💬' },
+  { id: 'turku', label: 'Türkü Stüdyosu', icon: '🎻' },
   { id: 'designer', label: 'Sahne Tasarımcısı', icon: '🎨' },
   { id: 'media', label: 'Medya Kütüphanesi', icon: '🖼', phase: 'Sonraki faz' },
   { id: 'settings', label: 'Yayın Ayarları', icon: '⚙' },
@@ -41,7 +45,9 @@ const MENU = [
 
 export default function App() {
   const { state, connected, loaded, update } = useStudio();
-  const [page, setPage] = useState<(typeof MENU)[number]['id']>('dashboard');
+  const requestedPage = new URLSearchParams(location.search).get('page');
+  const initialPage = MENU.some((item) => item.id === requestedPage) ? requestedPage as (typeof MENU)[number]['id'] : 'dashboard';
+  const [page, setPage] = useState<(typeof MENU)[number]['id']>(initialPage);
   const [ui, setUiState] = useState<PreviewUi>(loadUi);
   const setUi = (next: PreviewUi) => {
     setUiState(next);
@@ -66,7 +72,14 @@ export default function App() {
         </div>
         <nav>
           {MENU.map((m) => (
-            <button key={m.id} className={`nav-item${m.id === page ? ' active' : ''}`} onClick={() => setPage(m.id)}>
+            <button
+              key={m.id}
+              className={`nav-item${m.id === page ? ' active' : ''}`}
+              onClick={() => {
+                setPage(m.id);
+                if (m.id === 'siir' || m.id === 'yarisma' || m.id === 'sohbet' || m.id === 'turku') update({ concept: m.id });
+              }}
+            >
               <span className="nav-icon">{m.icon}</span>
               <span>{m.label}</span>
               {'phase' in m && <span className="nav-phase">{m.phase}</span>}
@@ -85,10 +98,15 @@ export default function App() {
         )}
         <h1>{current.label}</h1>
         {page === 'dashboard' && <Dashboard {...props} />}
+        {page === 'siir' && <PoemStudio {...props} />}
+        {page === 'yarisma' && <ContestStudio {...props} />}
+        {page === 'sohbet' && <ChatStudio {...props} />}
+        {page === 'turku' && <TurkuStudio {...props} />}
         {page === 'designer' && <Designer {...props} />}
         {page === 'settings' && <BroadcastSettings {...props} />}
         {'phase' in current && <Placeholder title={current.label} phase={current.phase} />}
       </main>
+      <AudioDock />
     </div>
   );
 }

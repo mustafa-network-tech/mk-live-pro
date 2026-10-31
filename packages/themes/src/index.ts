@@ -1,4 +1,4 @@
-import type { Concept, FontId, ThemeId } from '../../shared/src/index.ts';
+import type { Concept, FontId, PoemThemeId, ThemeId } from '../../shared/src/index.ts';
 
 export interface ThemeMeta {
   id: ThemeId;
@@ -21,7 +21,7 @@ export const THEMES: ThemeMeta[] = [
     name: 'Modern Neon',
     description: 'Mor-mavi ışık, kalın sans başlık, hızlı giriş. Yarışma ve müzik için.',
     swatch: ['#12062b', '#a855f7', '#38bdf8'],
-    bestFor: ['yarisma', 'sarki'],
+    bestFor: ['yarisma'],
   },
   {
     id: 'warm-acoustic',
@@ -37,7 +37,6 @@ export const CONCEPT_LABELS: Record<Concept, string> = {
   yarisma: 'Yarışma',
   sohbet: 'Sohbet',
   turku: 'Türkü Gecesi',
-  sarki: 'Şarkı Gecesi',
 };
 
 /** Yalnızca Windows ile gelen sistem yazı tipleri; dış bağlantı gerektirmez. */
@@ -55,3 +54,17 @@ export const FONT_LABELS: Record<FontId, string> = {
   elegant: 'Zarif (Palatino)',
   humanist: 'Samimi (Candara)',
 };
+
+export interface PoemThemeMeta {
+  id: PoemThemeId;
+  name: string;
+  description: string;
+  swatch: [string, string, string];
+}
+
+export const POEM_THEMES: PoemThemeMeta[] = [
+  { id: 'rain', name: 'Yağmur', description: 'Serin mavi, cam dokusu ve ince damla çizgileri.', swatch: ['#101c2d', '#6fa8c9', '#d8edf7'] },
+  { id: 'autumn', name: 'Sonbahar', description: 'Kehribar, bakır ve sıcak yaprak tonları.', swatch: ['#2a150d', '#b96832', '#f1c27d'] },
+  { id: 'night', name: 'Gece', description: 'Lacivert, ay ışığı ve sakin bir sahne.', swatch: ['#090b21', '#7777bd', '#ece9ff'] },
+  { id: 'nostalgia', name: 'Nostalji', description: 'Sepya tonları ve klasik kart görünümü.', swatch: ['#251b16', '#a67c52', '#ead8b8'] },
+];

@@ -3,4 +3,6 @@ apps/*/dist/
 data/*.json
 data/*.tmp
 data/*.bozuk-*
+data/media/
+data/audio/
 apps/*/dist-hosted/

@@ -1,16 +1,20 @@
 // Tarayıcı tarafı WebSocket istemcisi (overlay ve stüdyo ortak kullanır).
 // Bağlantı koparsa sessizce yeniden dener; son durum çağıran tarafta korunur.
+import { DEFAULT_STATE, sanitizeState } from './state.ts';
 import type { ServerMessage, StatePatch, StudioState } from './state.ts';
 
 export interface StateClient {
   /** Yamayı gönderir; bağlı değilse false döner. */
   send(patch: StatePatch): boolean;
+  /** Yerel medya dosyasını WebSocket üzerinden ister. */
+  requestMedia(id: string): boolean;
   close(): void;
 }
 
 interface Handlers {
   onState(state: StudioState): void;
   onStatus(connected: boolean): void;
+  onMedia?(media: { id: string; mime: string; data: string }): void;
 }
 
 const HEARTBEAT_TIMEOUT_MS = 40_000; // sunucu 15 sn'de bir 'hb' yollar
@@ -73,7 +77,14 @@ export function connectState(role: 'overlay' | 'studio', handlers: Handlers): St
       lastMessage = Date.now();
       try {
         const msg = JSON.parse(String(ev.data)) as ServerMessage;
-        if (msg.type === 'state') handlers.onState(msg.state);
+        if (msg.type === 'state') {
+          // Eski bir yerel sunucu yeni panelle aynı anda açık kalmışsa eksik alanları
+          // varsayılanlarla tamamla; panel/overlay siyah ekrana düşmesin.
+          const safe = sanitizeState(msg.state, DEFAULT_STATE);
+          safe.rev = typeof msg.state?.rev === 'number' && Number.isFinite(msg.state.rev) ? Math.max(0, Math.trunc(msg.state.rev)) : 0;
+          handlers.onState(safe);
+        }
+        if (msg.type === 'media') handlers.onMedia?.(msg);
       } catch {
         /* bozuk mesajı yok say */
       }
@@ -95,6 +106,11 @@ export function connectState(role: 'overlay' | 'studio', handlers: Handlers): St
     send(patch) {
       if (!ws || ws.readyState !== WebSocket.OPEN) return false;
       ws.send(JSON.stringify({ type: 'patch', patch }));
+      return true;
+    },
+    requestMedia(id) {
+      if (!ws || ws.readyState !== WebSocket.OPEN) return false;
+      ws.send(JSON.stringify({ type: 'media:get', id }));
       return true;
     },
     close() {
