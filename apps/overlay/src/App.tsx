@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { DEFAULT_STATE, STAGE_HEIGHT, STAGE_WIDTH, sanitizeState } from '../../../packages/shared/src/index.ts';
-import type { StudioState } from '../../../packages/shared/src/index.ts';
+import { ARENA_OPTION_KEYS, DEFAULT_STATE, STAGE_HEIGHT, STAGE_WIDTH, sanitizeState } from '../../../packages/shared/src/index.ts';
+import type { ArenaPublicState, StudioState } from '../../../packages/shared/src/index.ts';
 import { connectState } from '../../../packages/shared/src/client.ts';
 import type { StateClient } from '../../../packages/shared/src/client.ts';
 import { FONT_STACKS } from '../../../packages/themes/src/index.ts';
@@ -68,9 +68,61 @@ function Countdown({ endsAt, active }: { endsAt: number; active: boolean }) {
   return <div className={`contest-timer${seconds <= 10 ? ' urgent' : ''}`}>{seconds}</div>;
 }
 
+function ArenaOverlay({ arena }: { arena: ArenaPublicState }) {
+  const question = arena.currentQuestion;
+  const showStage = arena.phase === 'stage-results';
+  const showFinal = arena.phase === 'final-results';
+  const phaseText = arena.phase === 'reading' ? 'SORUYU DİNLEYİN'
+    : arena.phase === 'answering' ? 'CEVABINI YORUMLARA YAZ'
+    : arena.phase === 'paused' ? 'SAYAÇ DURAKLATILDI'
+    : arena.phase === 'locked' ? 'CEVAPLAR KİLİTLENDİ'
+    : arena.phase === 'revealed' ? 'DOĞRU CEVAP'
+    : arena.phase === 'results' ? 'SORU SONUÇLARI'
+    : 'YENİ SORU HAZIRLANIYOR';
+
+  return <div className={`arena-overlay phase-${arena.phase}`}>
+    <div className="arena-overlay-head">
+      <div className="arena-logo">MK</div>
+      <div><strong>BİLGİ ARENASI</strong><span>TEST {arena.selectedTestId} · SORU {arena.questionNumber}/10</span></div>
+    </div>
+
+    {(showStage || showFinal) ? <div className="arena-podium-screen">
+      <div className="arena-podium-kicker">{showFinal ? 'BİLGİ ARENASI' : `TEST ${arena.selectedTestId} TAMAMLANDI`}</div>
+      <div className="arena-podium-title">{showFinal ? 'GECENİN ŞAMPİYONLARI' : 'AŞAMA KAZANANLARI'}</div>
+      <div className="arena-podium-list">
+        {(showFinal ? arena.overallRanking : arena.stageRanking).slice(0, 3).map((row, index) => <div className={`arena-podium-place place-${index + 1}`} key={row.userId}>
+          <span>{index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}</span><div><strong>{row.displayName}</strong><small>{showFinal ? row.totalScore : row.stageScore} puan{row.tied ? ' · eşit derece' : ''}</small></div>
+        </div>)}
+      </div>
+      {!showFinal && arena.stageRanking.length > 3 && <div className="arena-stage-all">{arena.stageRanking.slice(3, 12).map((row) => <span key={row.userId}>{row.rank}. {row.displayName}<b>{row.stageScore}</b></span>)}</div>}
+    </div> : question ? <>
+      <div className="arena-question-card">
+        <div className="arena-phase-line"><span>{phaseText}</span>{['reading', 'answering', 'paused'].includes(arena.phase) && <strong>{arena.remainingSeconds}</strong>}</div>
+        <div className="arena-question-meta">{question.category} · {question.difficulty}</div>
+        <FitText text={question.question} className="arena-question-text" size={58} maxLines={4} fitKey={`arena-question:${question.id}`} />
+        <div className="arena-options">
+          {ARENA_OPTION_KEYS.map((key) => <div key={key} className={`arena-option${question.correctOption === key ? ' correct' : ''}`}><b>{key}</b><span>{question.options[key]}</span></div>)}
+        </div>
+      </div>
+      {arena.phase === 'results' && arena.stats && <div className="arena-distribution">
+        {question.correctOption && <div className="arena-correct-inline">DOĞRU CEVAP: {question.correctOption} — {question.correctAnswer}</div>}
+        {ARENA_OPTION_KEYS.map((key) => {
+          const count = arena.stats!.options[key];
+          const percent = arena.stats!.validParticipants ? Math.round(count / arena.stats!.validParticipants * 100) : 0;
+          return <div className="arena-bar-row" key={key}><b>{key}</b><div><i style={{ width: `${percent}%` }} /></div><span>{count} · %{percent}</span></div>;
+        })}
+        <small>{arena.stats.correctCount} doğru · {arena.stats.wrongCount} yanlış · Ortalama {arena.stats.averageAnswerSeconds} sn</small>
+      </div>}
+      {arena.phase === 'revealed' && question.correctOption && <div className="arena-correct-banner">DOĞRU CEVAP: {question.correctOption} — {question.correctAnswer}</div>}
+      <div className="arena-score-strip">{arena.overallRanking.slice(0, 3).map((row) => <span key={row.userId}>{row.rank}. {row.displayName} <b>{row.totalScore}</b></span>)}</div>
+    </> : <div className="arena-waiting-card"><strong>MK LIVE PRO — BİLGİ ARENASI</strong><span>Yeni soru hazırlanıyor</span></div>}
+  </div>;
+}
+
 export default function App() {
   const [state, setState] = useState<StudioState | null>(readCache);
   const [photo, setPhoto] = useState<{ id: string; url: string; mime: string } | null>(null);
+  const [arena, setArena] = useState<ArenaPublicState | null>(null);
   const wantedPhoto = useRef('');
   const loadedPhoto = useRef('');
   const t = useStageTransform();
@@ -80,7 +132,8 @@ export default function App() {
     client = connectState('overlay', {
       onState: (s) => {
         setState(s);
-        const id = s.poem.photoMode === 'off' ? '' : s.poem.photoId;
+        const sceneBackground = s.concept === 'yarisma' || s.concept === 'sohbet' || s.concept === 'turku' ? s.sceneBackgrounds[s.concept] : null;
+        const id = s.concept === 'siir' ? (s.poem.photoMode === 'off' ? '' : s.poem.photoId) : (sceneBackground?.photoId ?? '');
         const changed = id !== wantedPhoto.current;
         wantedPhoto.current = id;
         if (changed) {
@@ -104,6 +157,7 @@ export default function App() {
           setPhoto({ id: media.id, url: `data:${media.mime};base64,${media.data}`, mime: media.mime });
         }
       },
+      onArena: setArena,
     });
     return () => client?.close();
   }, []);
@@ -118,6 +172,8 @@ export default function App() {
   const isContest = state.concept === 'yarisma';
   const isChat = state.concept === 'sohbet';
   const isTurku = state.concept === 'turku';
+  const isArena = isContest && state.contest.arenaActive && arena !== null;
+  const sceneBackground = isContest ? state.sceneBackgrounds.yarisma : isChat ? state.sceneBackgrounds.sohbet : isTurku ? state.sceneBackgrounds.turku : null;
   const nextPoemReader = state.poem.queue[0] ?? '';
   const contestWinner = state.contest.players.find((player) => player.id === state.contest.winnerId);
   const nextTurku = state.turku.queue[0] ?? null;
@@ -133,6 +189,10 @@ export default function App() {
 
   return (
     <div className="stage" data-theme={theme} style={stageStyle}>
+      {sceneBackground?.photoId && photo?.id === sceneBackground.photoId && photo.mime.startsWith('image/') && <div className="scene-background" style={{ opacity: sceneBackground.opacity / 100 }}>
+        <img src={photo.url} alt="" style={{ filter: `blur(${sceneBackground.blur}px)`, transform: `scale(${1 + sceneBackground.blur / 100})` }} />
+        <div className="scene-background-shade" style={{ opacity: sceneBackground.darkness / 100 }} />
+      </div>}
       <div className="safe" style={{ left: sa.left, top: sa.top, width: safeW, height: safeH }}>
         {isPoem && (
           <div
@@ -172,10 +232,11 @@ export default function App() {
             )}
           </div>
         )}
-        {isContest && (
+        {isArena && arena && <ArenaOverlay arena={arena} />}
+        {isContest && !isArena && (
           <div key={`${state.contest.status}:${state.contest.prompt}:${state.contest.reveal}:${state.contest.winnerId}`} className={`module-scene contest-scene status-${state.contest.status}`}>
             <div className="contest-card">
-              <div className="module-kicker">{state.contest.mode === 'word' ? 'Kelime tahmini' : state.contest.mode === 'poem' ? 'Şiir tamamlama' : state.contest.mode === 'folk' ? 'Türkü tahmini' : 'Soru-cevap'}</div>
+              <div className="module-kicker">{state.contest.mode === 'word' ? 'Kelime tahmini' : state.contest.mode === 'folk' ? 'Türkü tahmini' : 'Soru-cevap'}</div>
               {state.contest.prompt && <FitText text={state.contest.prompt} className="module-main-text" size={70} maxLines={4} fitKey={`contest:${safeW}`} />}
               {state.contest.hint && state.contest.status === 'live' && <div className="contest-hint">İpucu: {state.contest.hint}</div>}
               {state.contest.status === 'revealed' && state.contest.reveal && <div className="contest-reveal"><span>Doğru cevap</span><strong>{state.contest.reveal}</strong></div>}
@@ -211,7 +272,7 @@ export default function App() {
             {state.turku.showNext && nextTurku && <div className="turku-next"><span>Sıradaki</span><strong>{nextTurku.title}</strong>{nextTurku.requester && <small>İsteyen: {nextTurku.requester}</small>}</div>}
           </div>
         )}
-        {(layers.title || layers.subtitle || layers.decor) && (
+        {!isArena && (layers.title || layers.subtitle || layers.decor) && (
           <div
             className={`block align-${position.align}`}
             style={{ top: `${position.y}%`, transform: `translateY(-${position.y}%)` }}

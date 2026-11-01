@@ -223,3 +223,54 @@
 @keyframes module-card-in { from { opacity: 0; transform: translateY(34px) scale(0.98); } to { opacity: 1; transform: none; } }
 @keyframes winner-in { from { opacity: 0; transform: scale(0.72); } to { opacity: 1; transform: none; } }
 @keyframes timer-pulse { from { transform: translateX(-50%) scale(1); } to { transform: translateX(-50%) scale(1.08); } }
+
+/* ===================== BİLGİ ARENASI ===================== */
+.arena-overlay { position: absolute; inset: 0; color: #fff; font-family: Bahnschrift, 'Segoe UI', sans-serif; }
+.arena-overlay-head { position: absolute; left: 0; right: 0; top: 0; display: flex; align-items: center; justify-content: center; gap: 18px; padding: 18px 28px; border-bottom: 3px solid #caa73d; background: rgba(9,12,22,0.88); animation: module-card-in 0.55s ease-out both; }
+.arena-logo { width: 64px; height: 64px; display: grid; place-items: center; border-radius: 18px; color: #161104; background: linear-gradient(135deg,#fff0aa,#d4af37); font-size: 25px; font-weight: 900; }
+.arena-overlay-head strong, .arena-overlay-head span { display: block; }
+.arena-overlay-head strong { font-size: 42px; letter-spacing: 0.08em; }
+.arena-overlay-head span { margin-top: 3px; color: #f2d66f; font-size: 22px; letter-spacing: 0.12em; }
+.arena-question-card { position: absolute; left: 3%; right: 3%; top: 12%; padding: 24px 28px 28px; border: 3px solid #caa73d; border-radius: 28px; background: rgba(10,14,26,0.92); box-shadow: 0 18px 40px rgba(0,0,0,0.45); animation: module-card-in 0.6s ease-out both; }
+.arena-phase-line { display: flex; align-items: center; justify-content: space-between; min-height: 70px; color: #f8dd76; font-size: 26px; font-weight: 800; letter-spacing: 0.1em; }
+.arena-phase-line strong { width: 70px; height: 70px; display: grid; place-items: center; border: 4px solid #38bdf8; border-radius: 50%; color: #fff; font-size: 38px; }
+.phase-reading .arena-phase-line strong { border-color: #f4d35e; }
+.phase-paused .arena-phase-line strong { border-color: #ef5b5b; color: #ffb4b4; }
+.arena-question-meta { color: #aab5cc; font-size: 20px; text-transform: uppercase; letter-spacing: 0.1em; }
+.arena-question-text { margin: 14px 0 22px; line-height: 1.12; text-align: center; font-weight: 750; overflow-wrap: anywhere; }
+.arena-options { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
+.arena-option { min-height: 92px; display: flex; align-items: center; gap: 14px; padding: 13px 17px; border: 2px solid #3a4867; border-radius: 17px; background: rgba(24,32,52,0.96); }
+.arena-option b { width: 54px; height: 54px; flex: none; display: grid; place-items: center; border-radius: 50%; background: #d4af37; color: #151104; font-size: 28px; }
+.arena-option span { font-size: 28px; line-height: 1.12; overflow-wrap: anywhere; }
+.phase-locked .arena-option { opacity: 0.64; filter: grayscale(0.45); }
+.phase-revealed .arena-option, .phase-results .arena-option { opacity: 0.5; }
+.phase-revealed .arena-option.correct, .phase-results .arena-option.correct { opacity: 1; border-color: #3ecf8e; background: rgba(16,68,48,0.95); box-shadow: 0 0 22px rgba(62,207,142,0.38); }
+.phase-revealed .arena-option.correct b, .phase-results .arena-option.correct b { background: #3ecf8e; }
+.arena-correct-banner { position: absolute; left: 8%; right: 8%; top: 62%; padding: 18px 24px; text-align: center; border: 3px solid #3ecf8e; border-radius: 18px; background: rgba(10,55,39,0.94); color: #caffdf; font-size: 34px; font-weight: 800; animation: winner-in 0.65s ease-out both; }
+.arena-distribution { position: absolute; left: 4%; right: 4%; top: 70%; padding: 20px 24px; border: 2px solid #7283a7; border-radius: 20px; background: rgba(10,14,26,0.92); }
+.arena-correct-inline { margin: -5px 0 12px; color: #8ef0bd; text-align: center; font-size: 25px; font-weight: 800; }
+.arena-bar-row { display: grid; grid-template-columns: 32px 1fr 120px; gap: 12px; align-items: center; margin: 9px 0; font-size: 23px; }
+.arena-bar-row > div { height: 18px; overflow: hidden; border-radius: 9px; background: #242c40; }
+.arena-bar-row i { display: block; height: 100%; border-radius: 9px; background: linear-gradient(90deg,#38bdf8,#a855f7); transform-origin: left; animation: arena-bar-in 0.7s ease-out both; }
+.arena-distribution > small { display: block; margin-top: 12px; color: #bfc8dc; text-align: center; font-size: 19px; }
+.arena-score-strip { position: absolute; left: 3%; right: 3%; bottom: 0; display: flex; justify-content: center; gap: 12px; }
+.arena-score-strip span { min-width: 0; padding: 12px 18px; border: 2px solid #caa73d; border-radius: 14px 14px 0 0; background: rgba(18,18,27,0.92); font-size: 20px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.arena-score-strip b { color: #f2d66f; }
+.arena-waiting-card { position: absolute; left: 12%; right: 12%; top: 30%; padding: 40px; text-align: center; border: 3px solid #caa73d; border-radius: 30px; background: rgba(10,14,26,0.9); }
+.arena-waiting-card strong, .arena-waiting-card span { display: block; }
+.arena-waiting-card strong { font-size: 48px; }
+.arena-waiting-card span { margin-top: 12px; color: #f2d66f; font-size: 29px; }
+.arena-podium-screen { position: absolute; left: 5%; right: 5%; top: 19%; text-align: center; }
+.arena-podium-kicker { color: #f2d66f; font-size: 26px; letter-spacing: 0.14em; }
+.arena-podium-title { margin-top: 12px; font: 800 58px/1.1 Georgia, serif; text-shadow: 0 0 24px rgba(212,175,55,0.5); }
+.arena-podium-list { display: flex; flex-direction: column; gap: 16px; margin-top: 50px; }
+.arena-podium-place { display: flex; align-items: center; gap: 20px; padding: 22px 30px; text-align: left; border: 3px solid #a5872e; border-radius: 22px; background: rgba(20,18,24,0.94); animation: winner-in 0.7s ease-out both; }
+.arena-podium-place > span { font-size: 58px; }
+.arena-podium-place strong, .arena-podium-place small { display: block; }
+.arena-podium-place strong { font-size: 38px; }
+.arena-podium-place small { color: #f2d66f; font-size: 24px; }
+.arena-podium-place.place-1 { border-color: #f4d35e; transform: scale(1.03); }
+.arena-stage-all { display: grid; grid-template-columns: 1fr 1fr; gap: 7px 18px; margin-top: 22px; padding: 16px 20px; border: 2px solid #5d6477; border-radius: 16px; background: rgba(10,14,26,0.88); }
+.arena-stage-all span { display: flex; justify-content: space-between; gap: 10px; font-size: 20px; }
+.arena-stage-all b { color: #f2d66f; }
+@keyframes arena-bar-in { from { transform: scaleX(0); } to { transform: scaleX(1); } }

@@ -13,6 +13,23 @@ const SLOTS = [
 type SlotId = (typeof SLOTS)[number]['id'];
 type Assignments = Partial<Record<SlotId, string>>;
 
+const ARENA_EVENTS = [
+  { id: 'start', label: 'Yarışma başlangıcı', defaultSlot: 'welcome' },
+  { id: 'question', label: 'Yeni soru', defaultSlot: 'dingdong' },
+  { id: 'last10', label: 'Son 10 saniye', defaultSlot: 'wow' },
+  { id: 'timeout', label: 'Süre doldu', defaultSlot: 'dingdong' },
+  { id: 'reveal', label: 'Doğru cevap', defaultSlot: 'congrats' },
+  { id: 'stage', label: 'Aşama tamamlandı', defaultSlot: 'applause' },
+  { id: 'champion', label: 'Şampiyon açıklandı', defaultSlot: 'applause' },
+] as const;
+type ArenaEventId = (typeof ARENA_EVENTS)[number]['id'];
+type ArenaSoundMap = Record<ArenaEventId, SlotId | ''>;
+
+function loadArenaSounds(): ArenaSoundMap {
+  const defaults = Object.fromEntries(ARENA_EVENTS.map((event) => [event.id, event.defaultSlot])) as ArenaSoundMap;
+  try { return { ...defaults, ...JSON.parse(localStorage.getItem('mk-live-pro:arena-sounds') ?? '{}') }; } catch { return defaults; }
+}
+
 function loadAssignments(): Assignments {
   try { return JSON.parse(localStorage.getItem('mk-live-pro:soundboard') ?? '{}') as Assignments; } catch { return {}; }
 }
@@ -109,6 +126,7 @@ export function AudioDock() {
   const [volume, setVolume] = useState(() => Number(localStorage.getItem('mk-live-pro:effects-volume') ?? '70'));
   const [status, setStatus] = useState('Hazır');
   const [uploading, setUploading] = useState(false);
+  const [arenaSounds, setArenaSounds] = useState<ArenaSoundMap>(loadArenaSounds);
   const players = useRef(new Set<HTMLAudioElement>());
 
   const load = () => {
@@ -143,6 +161,10 @@ export function AudioDock() {
     localStorage.setItem('mk-live-pro:effects-volume', String(volume));
   }, [volume]);
 
+  useEffect(() => {
+    localStorage.setItem('mk-live-pro:arena-sounds', JSON.stringify(arenaSounds));
+  }, [arenaSounds]);
+
   const play = (slot: (typeof SLOTS)[number]) => {
     const audioId = assignments[slot.id];
     if (!audioId) {
@@ -162,6 +184,17 @@ export function AudioDock() {
     player.addEventListener('error', cleanup, { once: true });
     void player.play().then(() => setStatus(`${slot.label} çalıyor`)).catch(() => setStatus('Ses çalınamadı'));
   };
+
+  useEffect(() => {
+    const onArenaEvent = (event: Event) => {
+      const eventId = (event as CustomEvent<string>).detail as ArenaEventId;
+      const slotId = arenaSounds[eventId];
+      const slot = SLOTS.find((item) => item.id === slotId);
+      if (slot) play(slot);
+    };
+    window.addEventListener('mk-live-pro:arena-event', onArenaEvent);
+    return () => window.removeEventListener('mk-live-pro:arena-event', onArenaEvent);
+  }, [arenaSounds, assignments, items, volume]);
 
   const stopAll = () => {
     for (const player of players.current) {
@@ -223,6 +256,11 @@ export function AudioDock() {
             ))}
           </div>
           <label className="effects-volume">Efekt sesi <small>%{volume}</small><input type="range" min={0} max={100} value={volume} onChange={(event) => setVolume(Number(event.target.value))} /></label>
+          <details className="arena-sound-settings">
+            <summary>Bilgi Arenası otomatik sesleri</summary>
+            <p className="hint">Her olay kapatılabilir veya yukarıdaki efekt yuvalarından birine bağlanabilir.</p>
+            {ARENA_EVENTS.map((arenaEvent) => <label key={arenaEvent.id}>{arenaEvent.label}<select value={arenaSounds[arenaEvent.id]} onChange={(event) => setArenaSounds((current) => ({ ...current, [arenaEvent.id]: event.target.value as SlotId | '' }))}><option value="">Kapalı</option>{SLOTS.map((slot) => <option key={slot.id} value={slot.id}>{slot.icon} {slot.label}</option>)}</select></label>)}
+          </details>
           <div className="soundboard-actions">
             <label className={`btn file-button${uploading ? ' disabled' : ''}`}>+ Efekt sesi ekle<input type="file" accept=".mp3,.wav,.m4a,.ogg,.webm,audio/*" disabled={uploading} onChange={(event) => { void upload(event.target.files?.[0]); event.currentTarget.value = ''; }} /></label>
             <button className="btn danger" onClick={stopAll}>Efektleri durdur</button>

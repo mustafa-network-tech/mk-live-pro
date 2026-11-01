@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { DEFAULT_STATE } from '../../../packages/shared/src/index.ts';
 import type { StatePatch, StudioState } from '../../../packages/shared/src/index.ts';
+import type { ArenaCommand, ArenaStudioState } from '../../../packages/shared/src/index.ts';
 import { connectState } from '../../../packages/shared/src/client.ts';
 import type { StateClient } from '../../../packages/shared/src/client.ts';
 
@@ -17,7 +18,10 @@ export function useStudio() {
   const [state, setState] = useState<StudioState>(DEFAULT_STATE);
   const [connected, setConnected] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [arena, setArena] = useState<ArenaStudioState | null>(null);
+  const [arenaError, setArenaError] = useState('');
   const clientRef = useRef<StateClient | null>(null);
+  const previousArena = useRef<ArenaStudioState | null>(null);
   const outbox = useRef<StatePatch>({});
   const lastEdit = useRef(0);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -40,6 +44,24 @@ export function useStudio() {
         setConnected(ok);
         if (ok) setTimeout(flush, 0);
       },
+      onArenaStudio: (next) => {
+        const previous = previousArena.current;
+        if (previous) {
+          let event = '';
+          if (previous.tournamentStatus === 'idle' && next.tournamentStatus === 'running') event = 'start';
+          else if (previous.currentQuestionPrivate?.id !== next.currentQuestionPrivate?.id || (previous.phase !== 'reading' && next.phase === 'reading')) event = 'question';
+          else if (previous.phase === 'answering' && previous.remainingSeconds > 10 && next.remainingSeconds <= 10) event = 'last10';
+          else if (previous.phase === 'answering' && next.phase === 'locked') event = 'timeout';
+          else if (previous.phase !== 'revealed' && next.phase === 'revealed') event = 'reveal';
+          else if (previous.phase !== 'stage-results' && next.phase === 'stage-results') event = 'stage';
+          else if (previous.phase !== 'final-results' && next.phase === 'final-results') event = 'champion';
+          if (event) window.dispatchEvent(new CustomEvent('mk-live-pro:arena-event', { detail: event }));
+        }
+        previousArena.current = next;
+        setArena(next);
+        setArenaError('');
+      },
+      onArenaError: setArenaError,
     });
     clientRef.current = client;
     return () => {
@@ -58,5 +80,10 @@ export function useStudio() {
     [flush],
   );
 
-  return { state, connected, loaded, update };
+  const sendArena = useCallback((command: ArenaCommand) => {
+    setArenaError('');
+    if (!clientRef.current?.sendArena(command)) setArenaError('Bilgi Arenası komutu gönderilemedi; sunucu bağlantısını kontrol edin.');
+  }, []);
+
+  return { state, connected, loaded, update, arena, arenaError, sendArena };
 }

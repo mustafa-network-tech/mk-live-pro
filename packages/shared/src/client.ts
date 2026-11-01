@@ -2,12 +2,15 @@
 // Bağlantı koparsa sessizce yeniden dener; son durum çağıran tarafta korunur.
 import { DEFAULT_STATE, sanitizeState } from './state.ts';
 import type { ServerMessage, StatePatch, StudioState } from './state.ts';
+import type { ArenaCommand, ArenaPublicState, ArenaStudioState } from './arena.ts';
 
 export interface StateClient {
   /** Yamayı gönderir; bağlı değilse false döner. */
   send(patch: StatePatch): boolean;
   /** Yerel medya dosyasını WebSocket üzerinden ister. */
   requestMedia(id: string): boolean;
+  /** Sunucu tarafındaki Bilgi Arenası motoruna yetkili komut yollar. */
+  sendArena(command: ArenaCommand): boolean;
   close(): void;
 }
 
@@ -15,6 +18,9 @@ interface Handlers {
   onState(state: StudioState): void;
   onStatus(connected: boolean): void;
   onMedia?(media: { id: string; mime: string; data: string }): void;
+  onArena?(arena: ArenaPublicState): void;
+  onArenaStudio?(arena: ArenaStudioState): void;
+  onArenaError?(message: string): void;
 }
 
 const HEARTBEAT_TIMEOUT_MS = 40_000; // sunucu 15 sn'de bir 'hb' yollar
@@ -85,6 +91,9 @@ export function connectState(role: 'overlay' | 'studio', handlers: Handlers): St
           handlers.onState(safe);
         }
         if (msg.type === 'media') handlers.onMedia?.(msg);
+        if (msg.type === 'arena') handlers.onArena?.(msg.arena);
+        if (msg.type === 'arena:studio') handlers.onArenaStudio?.(msg.arena);
+        if (msg.type === 'arena:error') handlers.onArenaError?.(msg.message);
       } catch {
         /* bozuk mesajı yok say */
       }
@@ -111,6 +120,11 @@ export function connectState(role: 'overlay' | 'studio', handlers: Handlers): St
     requestMedia(id) {
       if (!ws || ws.readyState !== WebSocket.OPEN) return false;
       ws.send(JSON.stringify({ type: 'media:get', id }));
+      return true;
+    },
+    sendArena(command) {
+      if (!ws || ws.readyState !== WebSocket.OPEN) return false;
+      ws.send(JSON.stringify({ type: 'arena:command', command }));
       return true;
     },
     close() {

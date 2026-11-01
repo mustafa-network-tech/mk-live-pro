@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useStudio } from './useStudio.ts';
 import type { Update } from './useStudio.ts';
-import type { StudioState } from '../../../packages/shared/src/index.ts';
+import type { ArenaCommand, ArenaStudioState, StudioState } from '../../../packages/shared/src/index.ts';
 import { Dashboard } from './pages/Dashboard.tsx';
 import { Designer } from './pages/Designer.tsx';
 import { BroadcastSettings } from './pages/BroadcastSettings.tsx';
@@ -21,6 +21,10 @@ export interface PageProps {
   update: Update;
   ui: PreviewUi;
   setUi: (ui: PreviewUi) => void;
+  arena: ArenaStudioState | null;
+  arenaError: string;
+  sendArena: (command: ArenaCommand) => void;
+  loaded: boolean;
 }
 
 const UI_KEY = 'mk-live-pro:studio-ui';
@@ -44,7 +48,7 @@ const MENU = [
 ] as const;
 
 export default function App() {
-  const { state, connected, loaded, update } = useStudio();
+  const { state, connected, loaded, update, arena, arenaError, sendArena } = useStudio();
   const requestedPage = new URLSearchParams(location.search).get('page');
   const initialPage = MENU.some((item) => item.id === requestedPage) ? requestedPage as (typeof MENU)[number]['id'] : 'dashboard';
   const [page, setPage] = useState<(typeof MENU)[number]['id']>(initialPage);
@@ -57,7 +61,7 @@ export default function App() {
       /* yok say */
     }
   };
-  const props: PageProps = { s: state, update, ui, setUi };
+  const props: PageProps = { s: state, update, ui, setUi, arena, arenaError, sendArena, loaded };
   const current = MENU.find((m) => m.id === page)!;
 
   return (

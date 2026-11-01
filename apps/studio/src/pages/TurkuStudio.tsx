@@ -3,6 +3,7 @@ import { LIMITS } from '../../../../packages/shared/src/index.ts';
 import type { TurkuRequest, TurkuState } from '../../../../packages/shared/src/index.ts';
 import type { PageProps } from '../App.tsx';
 import { Preview } from '../Preview.tsx';
+import { SceneBackgroundPicker } from '../SceneBackgroundPicker.tsx';
 
 const emptyRequest = (): Omit<TurkuRequest, 'id'> => ({ title: '', artist: '', region: '', requester: '' });
 
@@ -39,6 +40,7 @@ export function TurkuStudio({ s, update, ui }: PageProps) {
   return (
     <div className="grid-2">
       <section className="col">
+        <SceneBackgroundPicker concept="turku" s={s} update={update} />
         <div className="card">
           <div className="status-strip">
             <div><h2>Şimdi sahnede</h2><strong>{s.turku.current?.title || 'Eser seçilmedi'}</strong></div>

@@ -55,10 +55,40 @@ Fon müziği testini gerçek yayına çıkmadan TikTok LIVE Studio Practice Mode
 | 8 | İlk eseri sahneye alıp başlatın | Şimdiki eser ve varsa sıradaki eser overlay'de görünür | [ ] |
 | 9 | Eseri bitirip sıradakini sahneye alın | Durum ve eser bilgisi yenileme gerektirmeden değişir | [ ] |
 | 10 | Sol menüyü kontrol edin | Ayrı Şarkı Stüdyosu yoktur; tek Türkü Stüdyosu bulunur | [ ] |
+| 11 | Yarışma, Sohbet ve Türkü stüdyolarında farklı fotoğraflar seçin | Her stüdyo kendi fotoğrafını, görünürlük, karartma ve bulanıklık ayarını korur | [ ] |
+| 12 | Fotoğrafı kapat düğmesine basın | Overlay yeniden şeffaf olur ve kamera alanı görünür kalır | [ ] |
 
 ## Global Ses Efektleri
 
 Sağ alttaki “Ses Efektleri” paneli bütün stüdyo sayfalarında görünmelidir. Dosya atamadan altı düğmeyi de deneyin: alkış ve ding-dong sentezlenmiş efekt, tebrikler/hoş geldiniz/wow/kahkaha ise bilgisayarın yerel konuşma motoruyla çalışır. İstenirse her düğme yayın hakkı bulunan başka bir ses dosyasıyla değiştirilebilir. Fon müziği açıkken efektlere basın: fon kesilmeden efekt çalmalı ve LIVE Studio ses ölçeri hareket etmelidir.
+
+## Bilgi Arenası kontrolü
+
+Gerçek TikTok yorum bağlantısı henüz yoktur. Bu testte paneldeki manuel giriş kullanılır; DEMO girdileri gerçek katılımcı sayılmaz.
+
+| # | Test | Beklenen | Sonuç |
+|---|------|----------|-------|
+| 1 | Yarışma Merkezi → Bilgi Arenası → Turnuvayı başlat | Bilgi Arenası bekleme ekranı açılır; Kelime ve Türkü Tahmini ayrı sekmede kalır | [ ] |
+| 2 | Okuma süresini başlat | Soru ve A/B/C/D görünür, “SORUYU DİNLEYİN” yazar; doğru şık belli olmaz | [ ] |
+| 3 | Okuma sırasında manuel cevap gönder | Cevap reddedilir ve puan oluşmaz | [ ] |
+| 4 | Cevapları aç | Sayaç 50 saniyeden başlar ve “CEVABINI YORUMLARA YAZ” görünür | [ ] |
+| 5 | Aynı kullanıcı kimliğiyle iki cevap gönder | Yalnızca ilk geçerli cevap kaydedilir | [ ] |
+| 6 | Doğru ve yanlış cevaplar gönderip cevapları kilitle | Yeni cevap kabul edilmez; puanlar sunucuda hesaplanır | [ ] |
+| 7 | Doğru cevabı açıkla, ardından sonuçları göster | Doğru seçenek yeşil olur; A/B/C/D dağılımı ve istatistikler görünür | [ ] |
+| 8 | Soru 10'dan sonra sonraki soruya geç | Aşama ilk üçü ve aşama puanları görünür | [ ] |
+| 9 | Test 3'ü bitir | “GECENİN ŞAMPİYONLARI” genel ilk üç ekranı görünür | [ ] |
+| 10 | Ses Efektleri → Bilgi Arenası otomatik sesleri | Her olay ayrı kapatılabilir veya bir efekt yuvasına bağlanabilir | [ ] |
+| 11 | Sunucuyu kapatıp yeniden aç | Turnuva, cevaplar, puanlar ve düzeltme geçmişi korunur | [ ] |
+
+## Kelime ve Türkü Tahmini paketleri
+
+| # | Test | Beklenen | Sonuç |
+|---|------|----------|-------|
+| 1 | Diğer yarışmalar → Kelime Tahmini | 40 soruluk paket, önceki/rastgele/sonraki kontrolleri ve gizli cevap görünür | [ ] |
+| 2 | Bir kelime sorusunu başlatıp ipucunu gösterin | Soru ve ipucu overlay'de görünür; cevap açıklanmadan görünmez | [ ] |
+| 3 | Diğer yarışmalar → Türkü Tahmini | 40 soruluk, şarkı sözü içermeyen türkü ipucu paketi açılır | [ ] |
+| 4 | Bir türkü sorusunda “Cevabı göster”e basın | Türkü adı yalnızca açıklama komutundan sonra overlay'de görünür | [ ] |
+| 5 | Yarışma modu düğmelerini kontrol edin | Şiir Tamamlama seçeneği bulunmaz | [ ] |
 
 ## Sorun giderme
 

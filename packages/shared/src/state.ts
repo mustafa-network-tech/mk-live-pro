@@ -36,7 +36,7 @@ export interface PoemState {
   photoOpacity: number;
 }
 
-export const CONTEST_MODES = ['word', 'poem', 'folk', 'quiz'] as const;
+export const CONTEST_MODES = ['word', 'folk', 'quiz'] as const;
 export type ContestMode = (typeof CONTEST_MODES)[number];
 export const CONTEST_STATUSES = ['setup', 'live', 'revealed', 'finished'] as const;
 export type ContestStatus = (typeof CONTEST_STATUSES)[number];
@@ -48,6 +48,7 @@ export interface ContestPlayer {
 }
 
 export interface ContestState {
+  arenaActive: boolean;
   mode: ContestMode;
   prompt: string;
   hint: string;
@@ -86,6 +87,16 @@ export interface TurkuState {
   showNext: boolean;
 }
 
+export interface SceneBackground {
+  photoId: string;
+  opacity: number;
+  darkness: number;
+  blur: number;
+}
+
+export type SceneBackgroundConcept = 'yarisma' | 'sohbet' | 'turku';
+export type SceneBackgrounds = Record<SceneBackgroundConcept, SceneBackground>;
+
 export interface StudioState {
   /** Sunucu tarafından artırılır; istemci yamalarında yok sayılır. */
   rev: number;
@@ -106,6 +117,7 @@ export interface StudioState {
   contest: ContestState;
   chat: ChatState;
   turku: TurkuState;
+  sceneBackgrounds: SceneBackgrounds;
 }
 
 export type StatePatch = { [K in keyof StudioState]?: Partial<StudioState[K]> | StudioState[K] };
@@ -133,6 +145,7 @@ export const DEFAULT_STATE: StudioState = {
     photoOpacity: 72,
   },
   contest: {
+    arenaActive: false,
     mode: 'quiz',
     prompt: '',
     hint: '',
@@ -157,6 +170,11 @@ export const DEFAULT_STATE: StudioState = {
     status: 'waiting',
     showNext: true,
   },
+  sceneBackgrounds: {
+    yarisma: { photoId: '', opacity: 32, darkness: 38, blur: 1 },
+    sohbet: { photoId: '', opacity: 36, darkness: 34, blur: 1 },
+    turku: { photoId: '', opacity: 38, darkness: 32, blur: 1 },
+  },
 };
 
 export const LIMITS = {
@@ -167,6 +185,9 @@ export const LIMITS = {
   poemReader: 60,
   poemQueue: 50,
   photoOpacity: [10, 100] as const,
+  backgroundOpacity: [10, 100] as const,
+  backgroundDarkness: [0, 85] as const,
+  backgroundBlur: [0, 12] as const,
   contestPrompt: 240,
   contestHint: 160,
   contestReveal: 160,
@@ -242,6 +263,7 @@ export function sanitizeState(input: unknown, base: StudioState): StudioState {
   const contest = isObj(i.contest) ? i.contest : {};
   const chat = isObj(i.chat) ? i.chat : {};
   const turku = isObj(i.turku) ? i.turku : {};
+  const sceneBackgrounds = isObj(i.sceneBackgrounds) ? i.sceneBackgrounds : {};
 
   const participants = Array.isArray(i.participants)
     ? i.participants
@@ -332,6 +354,7 @@ export function sanitizeState(input: unknown, base: StudioState): StudioState {
       photoOpacity: num(poem.photoOpacity, LIMITS.photoOpacity, base.poem.photoOpacity),
     },
     contest: {
+      arenaActive: bool(contest.arenaActive, base.contest.arenaActive),
       mode: oneOf(contest.mode, CONTEST_MODES, base.contest.mode),
       prompt: text(contest.prompt, LIMITS.contestPrompt, base.contest.prompt),
       hint: text(contest.hint, LIMITS.contestHint, base.contest.hint),
@@ -356,6 +379,16 @@ export function sanitizeState(input: unknown, base: StudioState): StudioState {
       status: oneOf(turku.status, TURKU_STATUSES, base.turku.status),
       showNext: bool(turku.showNext, base.turku.showNext),
     },
+    sceneBackgrounds: Object.fromEntries((['yarisma', 'sohbet', 'turku'] as const).map((concept) => {
+      const value = isObj(sceneBackgrounds[concept]) ? sceneBackgrounds[concept] as Record<string, unknown> : {};
+      const fallback = base.sceneBackgrounds[concept];
+      return [concept, {
+        photoId: typeof value.photoId === 'string' && /^(|[a-f0-9-]{36})$/.test(value.photoId) ? value.photoId : fallback.photoId,
+        opacity: num(value.opacity, LIMITS.backgroundOpacity, fallback.opacity),
+        darkness: num(value.darkness, LIMITS.backgroundDarkness, fallback.darkness),
+        blur: num(value.blur, LIMITS.backgroundBlur, fallback.blur),
+      }];
+    })) as unknown as SceneBackgrounds,
   };
 }
 
@@ -364,5 +397,11 @@ export function sanitizeState(input: unknown, base: StudioState): StudioState {
 export type ServerMessage =
   | { type: 'state'; state: StudioState }
   | { type: 'media'; id: string; mime: string; data: string }
+  | { type: 'arena'; arena: import('./arena.ts').ArenaPublicState }
+  | { type: 'arena:studio'; arena: import('./arena.ts').ArenaStudioState }
+  | { type: 'arena:error'; message: string }
   | { type: 'hb' };
-export type ClientMessage = { type: 'patch'; patch: StatePatch } | { type: 'media:get'; id: string };
+export type ClientMessage =
+  | { type: 'patch'; patch: StatePatch }
+  | { type: 'media:get'; id: string }
+  | { type: 'arena:command'; command: import('./arena.ts').ArenaCommand };

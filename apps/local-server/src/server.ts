@@ -11,6 +11,9 @@ import { createStore } from './store.ts';
 import { createPoemStore } from './poem-store.ts';
 import { createMediaStore } from './media-store.ts';
 import { createAudioStore } from './audio-store.ts';
+import { createArenaQuestionStore } from './arena-question-store.ts';
+import { createArenaStore } from './arena-store.ts';
+import { LocalCommentProvider } from './comment-provider.ts';
 
 const HOST = '127.0.0.1';
 const PORT = Number(process.env.PORT) || 4173;
@@ -40,6 +43,12 @@ const store = createStore(DATA_DIR);
 const poemStore = createPoemStore(DATA_DIR);
 const mediaStore = createMediaStore(DATA_DIR);
 const audioStore = createAudioStore(DATA_DIR);
+const arenaQuestionStore = createArenaQuestionStore(DATA_DIR);
+const arenaStore = createArenaStore(DATA_DIR, arenaQuestionStore);
+const manualCommentProvider = new LocalCommentProvider('manual');
+const demoCommentProvider = new LocalCommentProvider('demo');
+manualCommentProvider.start(arenaStore.submitComment);
+demoCommentProvider.start(arenaStore.submitComment);
 
 // Opsiyonel: data/config.json -> { "overlayOrigins": ["https://proje.vercel.app"] }
 // Bu adreslerden gelen bağlantılar yalnızca overlay (salt okunur) olarak kabul edilir.
@@ -145,6 +154,27 @@ const server = http.createServer(async (req, res) => {
   const p = url.pathname;
 
   if (p === '/api/health') return json(res, 200, { ok: true, rev: store.get().rev, clients: wss.clients.size });
+  if (p === '/api/arena/questions') {
+    if (!originOk(req)) return json(res, 403, { error: 'origin' });
+    if (req.method === 'GET') return json(res, 200, arenaQuestionStore.get());
+    if (req.method === 'PUT') {
+      try {
+        const questions = arenaQuestionStore.replace(JSON.parse(await readBody(req, MAX_LIBRARY_BODY)));
+        broadcastArena();
+        return json(res, 200, questions);
+      } catch (err) {
+        return json(res, 400, { error: (err as Error).message });
+      }
+    }
+    return json(res, 405, { error: 'method' });
+  }
+  if (p === '/api/arena/questions/reset') {
+    if (!originOk(req)) return json(res, 403, { error: 'origin' });
+    if (req.method !== 'POST') return json(res, 405, { error: 'method' });
+    const questions = arenaQuestionStore.reset();
+    broadcastArena();
+    return json(res, 200, questions);
+  }
   if (p === '/api/poems') {
     if (!originOk(req)) return json(res, 403, { error: 'origin' });
     if (req.method === 'GET') return json(res, 200, poemStore.get());
@@ -243,10 +273,24 @@ const server = http.createServer(async (req, res) => {
 
 // --- WebSocket --------------------------------------------------------------
 const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_BODY });
+const socketRoles = new WeakMap<WebSocket, string>();
 
 function broadcast(msg: ServerMessage) {
   const data = JSON.stringify(msg);
   for (const c of wss.clients) if (c.readyState === WebSocket.OPEN) c.send(data);
+}
+
+function sendArena(ws: WebSocket, role: string) {
+  const msg: ServerMessage = role === 'studio'
+    ? { type: 'arena:studio', arena: arenaStore.getStudio() }
+    : { type: 'arena', arena: arenaStore.getPublic() };
+  ws.send(JSON.stringify(msg));
+}
+
+function broadcastArena() {
+  for (const client of wss.clients) {
+    if (client.readyState === WebSocket.OPEN) sendArena(client, socketRoles.get(client) ?? 'overlay');
+  }
 }
 
 server.on('upgrade', (req: http.IncomingMessage, socket: Duplex, head: Buffer) => {
@@ -261,13 +305,30 @@ server.on('upgrade', (req: http.IncomingMessage, socket: Duplex, head: Buffer) =
   }
   const role = url.searchParams.get('role');
   wss.handleUpgrade(req, socket, head, (ws) => {
+    socketRoles.set(ws, role ?? 'overlay');
     ws.send(JSON.stringify({ type: 'state', state: store.get() } satisfies ServerMessage));
+    sendArena(ws, role ?? 'overlay');
     ws.on('message', (raw) => {
       try {
         const msg = JSON.parse(raw.toString()) as ClientMessage;
         if (msg.type === 'media:get') {
           const media = mediaStore.read(msg.id);
           if (media) ws.send(JSON.stringify({ type: 'media', id: media.item.id, mime: media.item.mime, data: media.data.toString('base64') } satisfies ServerMessage));
+          return;
+        }
+        if (msg.type === 'arena:command') {
+          if (role !== 'studio') return;
+          const command = msg.command;
+          const commandResult = command.type === 'submit-comment'
+            ? (command.source === 'demo' ? demoCommentProvider : manualCommentProvider).emit({
+                eventId: command.eventId?.trim().slice(0, 160) || crypto.randomUUID(),
+                userId: command.userId,
+                displayName: command.displayName,
+                comment: command.comment,
+              })
+            : arenaStore.command(command);
+          if (!commandResult.ok) ws.send(JSON.stringify({ type: 'arena:error', message: commandResult.message } satisfies ServerMessage));
+          broadcastArena();
           return;
         }
         // Yalnızca stüdyo yayın durumunu değiştirebilir; overlay salt okunur.
@@ -283,6 +344,16 @@ server.on('upgrade', (req: http.IncomingMessage, socket: Duplex, head: Buffer) =
 });
 
 const heartbeat = setInterval(() => broadcast({ type: 'hb' }), 15_000);
+let arenaSignature = '';
+const arenaTicker = setInterval(() => {
+  arenaStore.tick();
+  const arena = arenaStore.getPublic();
+  const signature = `${arena.rev}:${arena.phase}:${arena.remainingSeconds}`;
+  if (signature !== arenaSignature) {
+    arenaSignature = signature;
+    broadcastArena();
+  }
+}, 500);
 
 server.on('error', (err: NodeJS.ErrnoException) => {
   if (err.code === 'EADDRINUSE') console.error(`Port ${PORT} kullanımda. MK LIVE PRO zaten çalışıyor olabilir veya PORT ortam değişkeniyle başka port seçin.`);
@@ -300,7 +371,9 @@ server.listen(PORT, HOST, () => {
 
 function shutdown() {
   clearInterval(heartbeat);
+  clearInterval(arenaTicker);
   store.flush();
+  arenaStore.flush();
   poemStore.flush();
   process.exit(0);
 }

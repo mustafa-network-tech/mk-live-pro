@@ -151,6 +151,10 @@ input[type='color'] { display: block; margin-top: 5px; width: 56px; height: 34px
 .effects-volume { margin: 13px 0 8px; }
 .soundboard-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .soundboard-status { margin-top: 10px; color: var(--ok); font-size: 12px; }
+.arena-sound-settings { margin: 12px 0; padding: 10px; border: 1px solid var(--line); border-radius: 9px; }
+.arena-sound-settings summary { cursor: pointer; font-weight: 600; }
+.arena-sound-settings label { display: grid; grid-template-columns: minmax(0, 1fr) 170px; gap: 8px; align-items: center; margin: 8px 0 0; font-size: 12px; }
+.arena-sound-settings select { margin: 0; padding: 6px; font-size: 11px; }
 .private-answer { padding: 10px; border: 1px solid #285174; border-radius: 9px; background: #101d29; }
 .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 12px; }
 .score-list, .question-list, .request-list { display: flex; flex-direction: column; gap: 7px; margin-top: 12px; }
@@ -166,6 +170,47 @@ input[type='color'] { display: block; margin-top: 5px; width: 56px; height: 34px
 .request-info strong, .request-info span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .request-info span { color: var(--mute); font-size: 11px; }
 
+/* Bilgi Arenası: sunucu kontrollü üç aşamalı soru-cevap turnuvası. */
+.contest-section-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+.arena-layout { display: grid; grid-template-columns: minmax(560px, 1fr) 360px; gap: 20px; align-items: start; max-width: 1240px; }
+.arena-provider-warning { border-color: #80551f; background: #241b10; color: #ffd9a0; }
+.arena-provider-warning p { margin: 7px 0 0; color: #d9bd91; font-size: 12px; }
+.arena-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+.arena-tests { margin-bottom: 12px; }
+.arena-countdown { width: 58px; height: 58px; flex: none; display: grid; place-items: center; border: 3px solid var(--line); border-radius: 50%; color: var(--text); background: var(--bg); font-size: 24px; font-weight: 800; }
+.arena-countdown.phase-answering { border-color: #38bdf8; color: #8de3ff; box-shadow: 0 0 14px rgba(56,189,248,0.3); }
+.arena-countdown.phase-reading { border-color: var(--accent); color: #ffe598; }
+.arena-question-summary { margin: 8px 0 14px; padding: 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--bg); }
+.arena-question-summary span, .arena-question-summary small { display: block; }
+.arena-question-summary span { font-size: 16px; }
+.arena-question-summary small { margin: 8px 0 0; color: #9ff2c9; }
+.arena-answer-form label { min-width: 0; }
+.arena-table-wrap { overflow-x: auto; }
+.arena-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.arena-table th, .arena-table td { padding: 8px 7px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+.arena-table th { color: var(--mute); font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+.arena-table td:first-child { white-space: normal; min-width: 130px; }
+.arena-table td small { display: block; margin: 2px 0 0; }
+.arena-history { margin-top: 12px; color: var(--mute); font-size: 12px; }
+.arena-history summary, .arena-question-editor > summary { color: var(--text); cursor: pointer; font-weight: 600; }
+.arena-history div { padding: 5px 0; border-bottom: 1px solid var(--line); }
+.arena-stats { display: grid; grid-template-columns: repeat(4, minmax(90px, 1fr)); gap: 8px; }
+.arena-stats span { padding: 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--mute); font-size: 11px; }
+.arena-stats strong { display: block; margin-top: 3px; color: var(--text); font-size: 18px; }
+.arena-question-editor[open] > summary { margin-bottom: 14px; }
+.arena-editor-fields { padding-top: 4px; }
+.arena-ranking-row { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.arena-ranking-row:last-child { border-bottom: 0; }
+.arena-ranking-row strong { color: var(--accent); }
+.guess-pack-card select { margin: 0; }
+.guess-pack-preview { margin: 12px 0 0; padding: 11px 12px; border-left: 3px solid var(--accent); border-radius: 0 8px 8px 0; background: var(--bg); color: var(--text); }
+.contest-background-control { max-width: 1240px; margin-bottom: 16px; }
+.scene-background-picker > summary { cursor: pointer; font-weight: 700; }
+.scene-background-picker[open] > summary { margin-bottom: 14px; }
+.scene-background-picker .media-header { margin-top: 0; padding-top: 0; border-top: 0; }
+.scene-bg-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); max-height: 280px; overflow-y: auto; }
+.scene-bg-sliders { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+
 @media (max-width: 900px) {
   .sidebar { width: 210px; }
   .main { padding-left: 18px; padding-right: 18px; }
@@ -177,4 +222,8 @@ input[type='color'] { display: block; margin-top: 5px; width: 56px; height: 34px
   .audio-dock { right: 12px; bottom: 12px; }
   .score-row { grid-template-columns: minmax(100px, 1fr) 42px 36px 36px; }
   .score-row .btn:nth-of-type(n+4) { grid-column: span 1; }
+  .arena-layout { grid-template-columns: minmax(0, 1fr); }
+  .arena-stats { grid-template-columns: repeat(2, minmax(90px, 1fr)); }
+  .scene-bg-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .scene-bg-sliders { grid-template-columns: 1fr; }
 }

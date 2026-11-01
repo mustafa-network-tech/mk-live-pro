@@ -3,7 +3,7 @@
 TikTok LIVE Studio'ya "Bağlantı" kaynağı olarak eklenen, yerel çalışan canlı yayın sahne yöneticisi.
 *Yayınını aç, konseptini seç, sahnen hazır.*
 
-Durum: **Faz 1C yerel geliştirme tamamlandı**. Şiir Stüdyosu, Yarışma Merkezi, Sohbet Stüdyosu ve sade Türkü Stüdyosu hazırdır. Ayrı Şarkı Stüdyosu kaldırıldı; şarkı/türkü istekleri tek Türkü Stüdyosu üzerinden yönetilir. Gerçek TikTok LIVE Studio testi ve Vercel overlay güncellemesi kullanıcı onayı bekliyor.
+Durum: **Faz 1C + Bilgi Arenası yerel geliştirme tamamlandı**. Şiir Stüdyosu, Yarışma Merkezi, Sohbet Stüdyosu ve sade Türkü Stüdyosu hazırdır. Yarışma Merkezi'nde üç aşamalı Bilgi Arenası ayrı bir bölüm olarak bulunur; Kelime Tahmini ve Türkü Tahmini ayrı 40 soruluk yarışmalardır. Şiir Tamamlama kaldırılmıştır. Gerçek TikTok LIVE Studio testi ve Vercel overlay güncellemesi kullanıcı onayı bekliyor.
 
 ## Çalıştırma
 
@@ -47,6 +47,8 @@ packages/themes    Tema bilgileri ve overlay tema CSS'i
 data/poems.json    Yalnızca yerel panelde görünen özel şiir kütüphanesi
 data/media/        Yerel fotoğraf/video kütüphanesi (Vercel'e yüklenmez)
 data/audio/        Yerel fon müziği ve özel efekt sesleri (Vercel'e yüklenmez)
+data/arena.json    Bilgi Arenası turnuva, cevap ve puan kaydı
+data/arena-questions.json  Panelden düzenlenmiş özel soru paketi
 data/ assets/ docs/
 ```
 
@@ -71,16 +73,30 @@ Overlay bağlantısı kopsa son durumu gösterir, kendiliğinden yeniden bağlan
 
 ## Faz 1C stüdyoları
 
-- **Yarışma Merkezi:** kelime tahmini, şiir tamamlama, türkü tahmini ve soru-cevap modları; gizli cevap, ipucu, 10–600 saniye sayaç, manuel yarışmacı/puan yönetimi, skor tablosu ve kazanan ekranı.
+- **Yarışma Merkezi:** 40 soruluk Kelime Tahmini, 40 soruluk Türkü Tahmini ve serbest soru-cevap modu; gizli cevap, ipucu, 10–600 saniye sayaç, manuel yarışmacı/puan yönetimi, skor tablosu ve kazanan ekranı. Şiir Tamamlama modu kaldırılmıştır.
 - Gizli cevap yalnızca panel tarayıcısının yerel belleğinde tutulur; “Cevabı göster” denmeden overlay'e gönderilmez.
 - **Sohbet Stüdyosu:** günün konusu, aktif soru kartı ve yeniden kullanılabilen soru havuzu; kartlar ayrı ayrı yayına gösterilip gizlenebilir.
 - **Türkü Stüdyosu:** eser, sanatçı/kaynak, yöre ve istek sahibi bilgileriyle istek sırası; sıradaki eseri sahneye alma, başlatma ve bitirme.
 - Ayrı Şarkı Stüdyosu yoktur. Aynı işlevi tekrar etmemesi için tüm müzik istekleri Türkü Stüdyosu'nda birleştirilmiştir.
 - Global Ses Efektleri paneli bu stüdyoların tamamında kullanılabilir.
+- Yarışma, Sohbet ve Türkü stüdyolarının her birine ayrı yerel fotoğraf seçilebilir. Görünürlük, karartma ve bulanıklık ayarları stüdyo bazında saklanır; fotoğraf kapatıldığında şeffaf kamera alanı korunur.
+
+## Bilgi Arenası
+
+- Test 1 Isınma, Test 2 Mücadele ve Test 3 Büyük Final olmak üzere üç ayrı soru-cevap aşaması; her aşamada 10, toplamda 30 dört şıklı soru vardır.
+- Türkü Tahmini ve Kelime Tahmini Bilgi Arenası testleri değildir; Yarışma Merkezi'ndeki ayrı 40 soruluk yarışma modlarıdır.
+- Okuma süresi varsayılan 10 saniyedir. Bu sırada cevap kabul edilmez. Cevap aşaması sunucu tarafından yönetilen tam 50 saniyedir.
+- Doğru cevaplar 0–5 saniyede 10 puandan başlayarak beş saniyelik aralıklarla 1 puana iner; 50. saniye ve sonrası ile yanlış cevaplar sıfır puandır.
+- Aynı kararlı kullanıcı kimliği bir soruda yalnızca bir kez sayılır. Puanı yalnızca yerel sunucu hesaplar ve turnuva `data/arena.json` içinde korunur.
+- Overlay doğru cevabı açıklama komutundan önce almaz. Sonuç ekranında doğru şık, cevap dağılımı, istatistikler ve sıralama gösterilir.
+- 30 soruluk paket panelden düzenlenebilir; tek soru JSON olarak kopyalanabilir ve paket JSON olarak dışa aktarılabilir. Varsayılan paket silinmez; düzenleme yerel kopyaya yazılır.
+- Mevcut TikTok/LIVE Studio overlay bağlantısı yorum olaylarını sağlamaz. Gerçek yorum entegrasyonu **yoktur**; panelde manuel cevap ve açıkça işaretli DEMO cevap girişi bulunur. `CommentProvider` arayüzü ileride doğrulanmış bir sağlayıcı eklenmesine hazırdır.
+- Hız puanı, yorumun yerel sunucuya ulaştığı zamana göre hesaplanır. Platform olay zamanı olmadığı için yayın gecikmesine karşı kesin adalet garantisi verilmez.
+- Yarışma başlangıcı, yeni soru, son 10 saniye, süre sonu, cevap açıklaması, aşama ve şampiyon olayları mevcut Ses Efektleri yuvalarına ayrı ayrı bağlanabilir veya kapatılabilir.
 
 ## Bilinen sınırlar
 
 - TikTok LIVE Studio'da localhost, şeffaflık ve canlı güncelleme **henüz doğrulanmadı** (bkz. TIKTOK-TEST.md).
 - Gerçek TikTok verisi (yorum, hediye, izleyici) okunmaz; her şey elle yönetilir.
 - Geliştirme için canlı yeniden yükleme (Vite dev) yok; kod değişince `npm run build`.
-- Faz 1B ve Faz 1C değişiklikleri Vercel'e henüz deploy edilmedi; canlı Vercel overlay eski sürümde kalır.
+- Bilgi Arenası dahil son yerel değişiklikler Vercel'e henüz deploy edilmedi; canlı Vercel overlay eski sürümde kalır.

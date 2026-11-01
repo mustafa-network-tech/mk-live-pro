@@ -4,3 +4,6 @@ html, body, #root { margin: 0; width: 100%; height: 100%; overflow: hidden; back
 body { user-select: none; -webkit-user-select: none; cursor: none; pointer-events: none; }
 .stage { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; transform-origin: 0 0; contain: layout style; }
 .safe { position: absolute; }
+.scene-background { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.scene-background img { width: 100%; height: 100%; object-fit: cover; transform-origin: center; }
+.scene-background-shade { position: absolute; inset: 0; background: #000; }

@@ -3,6 +3,7 @@ import { LIMITS } from '../../../../packages/shared/src/index.ts';
 import type { ChatState } from '../../../../packages/shared/src/index.ts';
 import type { PageProps } from '../App.tsx';
 import { Preview } from '../Preview.tsx';
+import { SceneBackgroundPicker } from '../SceneBackgroundPicker.tsx';
 
 export function ChatStudio({ s, update, ui }: PageProps) {
   const [newQuestion, setNewQuestion] = useState('');
@@ -25,6 +26,7 @@ export function ChatStudio({ s, update, ui }: PageProps) {
   return (
     <div className="grid-2">
       <section className="col">
+        <SceneBackgroundPicker concept="sohbet" s={s} update={update} />
         <div className="card">
           <div className="status-strip">
             <div><h2>Günün konusu</h2><strong>{s.chat.topic || 'Konu belirlenmedi'}</strong></div>
