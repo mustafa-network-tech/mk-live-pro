@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useStudio } from './useStudio.ts';
 import type { Update } from './useStudio.ts';
-import type { ArenaCommand, ArenaStudioState, StudioState } from '../../../packages/shared/src/index.ts';
+import type { ArenaCommand, ArenaStudioState, LiveCommand, LiveStudioState, StudioState } from '../../../packages/shared/src/index.ts';
 import { Dashboard } from './pages/Dashboard.tsx';
 import { Designer } from './pages/Designer.tsx';
 import { BroadcastSettings } from './pages/BroadcastSettings.tsx';
@@ -11,6 +11,7 @@ import { AudioDock } from './AudioDock.tsx';
 import { ContestStudio } from './pages/ContestStudio.tsx';
 import { ChatStudio } from './pages/ChatStudio.tsx';
 import { TurkuStudio } from './pages/TurkuStudio.tsx';
+import { LiveConnection } from './pages/LiveConnection.tsx';
 
 export interface PreviewUi {
   guides: boolean;
@@ -25,6 +26,9 @@ export interface PageProps {
   arenaError: string;
   sendArena: (command: ArenaCommand) => void;
   loaded: boolean;
+  live: LiveStudioState | null;
+  liveError: string;
+  sendLive: (command: LiveCommand) => void;
 }
 
 const UI_KEY = 'mk-live-pro:studio-ui';
@@ -37,6 +41,7 @@ function loadUi(): PreviewUi {
 }
 
 const MENU = [
+  { id: 'live', label: 'TikTok LIVE Bağlantısı', icon: '◉' },
   { id: 'dashboard', label: 'Gösterge Paneli', icon: '▦' },
   { id: 'siir', label: 'Şiir Stüdyosu', icon: '✒' },
   { id: 'yarisma', label: 'Yarışma Merkezi', icon: '🏆' },
@@ -48,7 +53,7 @@ const MENU = [
 ] as const;
 
 export default function App() {
-  const { state, connected, loaded, update, arena, arenaError, sendArena } = useStudio();
+  const { state, connected, loaded, update, arena, arenaError, sendArena, live, liveError, sendLive } = useStudio();
   const requestedPage = new URLSearchParams(location.search).get('page');
   const initialPage = MENU.some((item) => item.id === requestedPage) ? requestedPage as (typeof MENU)[number]['id'] : 'dashboard';
   const [page, setPage] = useState<(typeof MENU)[number]['id']>(initialPage);
@@ -61,7 +66,7 @@ export default function App() {
       /* yok say */
     }
   };
-  const props: PageProps = { s: state, update, ui, setUi, arena, arenaError, sendArena, loaded };
+  const props: PageProps = { s: state, update, ui, setUi, arena, arenaError, sendArena, loaded, live, liveError, sendLive };
   const current = MENU.find((m) => m.id === page)!;
 
   return (
@@ -102,6 +107,7 @@ export default function App() {
         )}
         <h1>{current.label}</h1>
         {page === 'dashboard' && <Dashboard {...props} />}
+        {page === 'live' && <LiveConnection {...props} />}
         {page === 'siir' && <PoemStudio {...props} />}
         {page === 'yarisma' && <ContestStudio {...props} />}
         {page === 'sohbet' && <ChatStudio {...props} />}

@@ -9,6 +9,7 @@ import { WebSocket } from 'ws';
 import { arenaPointsForElapsed, CONTEST_MODES, DEFAULT_STATE, FOLK_GUESS_QUESTIONS, matchArenaAnswer, rankArenaParticipants, sanitizeState, WORD_GUESS_QUESTIONS } from '../../../packages/shared/src/index.ts';
 import type { ArenaParticipant } from '../../../packages/shared/src/index.ts';
 import { DEFAULT_ARENA_QUESTIONS } from './arena-questions.ts';
+import { createEffectQueue } from './effect-queue.ts';
 
 const PORT = 4999;
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mklive-'));
@@ -83,6 +84,11 @@ try {
   check('belirsiz yorum reddediliyor', matchArenaAnswer('A mı B mi?', firstArenaQuestion) === null);
   const tieParticipants: ArenaParticipant[] = ['a', 'b'].map((id) => ({ userId: id, displayName: id, stageScores: [10, 0, 0], totalScore: 10, correctCount: 1, correctTimeMs: 1000, stageCorrectCounts: [1, 0, 0], stageCorrectTimeMs: [1000, 0, 0] }));
   check('tam eşitlikte eşit derece korunuyor', rankArenaParticipants(tieParticipants, 1)[1]?.rank === 1 && rankArenaParticipants(tieParticipants, 1)[1]?.tied === true);
+  const effectQueue = createEffectQueue();
+  effectQueue.enqueue({ sourceEventId: 'low', kind: 'welcome', priority: 10, payload: {} });
+  effectQueue.enqueue({ sourceEventId: 'high', kind: 'leader-changed', priority: 90, payload: {} });
+  const duplicateEffect = effectQueue.enqueue({ sourceEventId: 'high', kind: 'leader-changed', priority: 90, payload: {} });
+  check('efekt kuyruğu öncelik ve tekrar sınırı uyguluyor', effectQueue.next()?.sourceEventId === 'high' && duplicateEffect === false);
 
   const migrated = sanitizeState({ title: 'Eski kayıt' }, DEFAULT_STATE);
   check(
@@ -106,6 +112,13 @@ try {
   check('overlay ve stüdyo WebSocket bağlandı', !!overlay && !!studio);
   await sleep(100);
   check('bağlanınca ilk durum geliyor', overlay!.messages[0]?.type === 'state' && overlay!.messages[0].state.title === 'Şiir Gecesi');
+
+  let liveState = studio!.messages.filter((message) => message.type === 'live:state').at(-1)?.live;
+  check('merkezi LIVE durumu başlangıçta bağlı görünmüyor', liveState?.connection.status === 'disconnected');
+  studio!.ws.send(JSON.stringify({ type: 'live:command', command: { type: 'connect', mode: 'MANUAL', liveSessionId: 'selftest-live' } }));
+  await sleep(80);
+  liveState = studio!.messages.filter((message) => message.type === 'live:state').at(-1)?.live;
+  check('tek merkezi manuel sağlayıcı bağlanıyor', liveState?.connection.status === 'connected' && liveState.connection.mode === 'MANUAL' && liveState.connection.liveSessionId === 'selftest-live');
 
   const arenaQuestionsResponse = await request('GET', '/api/arena/questions');
   check('özel soru paketi yalnızca kontrol API’sinden okunuyor', arenaQuestionsResponse.status === 200 && JSON.parse(arenaQuestionsResponse.body).length === 30);
@@ -140,6 +153,51 @@ try {
   overlay!.ws.send(JSON.stringify({ type: 'arena:command', command: { type: 'reset-tournament' } }));
   await sleep(80);
   check('overlay Bilgi Arenası kontrol komutu gönderemiyor', overlay!.messages.filter((message) => message.type === 'arena').at(-1)?.arena.phase === 'results');
+
+  // Ortak EventBus -> GiftEngine -> TeamEngine -> ChatEngine
+  liveState = studio!.messages.filter((message) => message.type === 'live:state').at(-1)?.live;
+  const teams = structuredClone(liveState.teams);
+  teams[0].giftRules = [{ giftId: 'rose', giftName: 'Gül', points: 5 }];
+  studio!.ws.send(JSON.stringify({ type: 'live:command', command: { type: 'set-teams', teams } }));
+  await sleep(60);
+  studio!.ws.send(JSON.stringify({ type: 'live:command', command: { type: 'emit-gift', sourceMode: 'MANUAL', eventId: 'gift-1', userId: 'u3', displayName: 'Zeynep', giftId: 'rose', giftName: 'Gül', count: 2 } }));
+  await sleep(80);
+  liveState = studio!.messages.filter((message) => message.type === 'live:state').at(-1)?.live;
+  check('demo/manüel hediye GiftEngine tarafından işleniyor', liveState.gifts.some((gift: any) => gift.eventId === 'gift-1' && gift.scoredCount === 2));
+  check('takıma atanmış hediye ortak motorla puanlanıyor', liveState.teamScores.find((score: any) => score.teamId === teams[0].id)?.score === 10);
+  check('lider değişiminde LEADER_CHANGED üretiliyor', liveState.recentEvents.some((event: any) => event.eventType === 'LEADER_CHANGED' && event.payload.leaderTeamId === teams[0].id));
+  studio!.ws.send(JSON.stringify({ type: 'live:command', command: { type: 'emit-gift', sourceMode: 'MANUAL', eventId: 'gift-1', userId: 'u3', displayName: 'Zeynep', giftId: 'rose', giftName: 'Gül', count: 2 } }));
+  await sleep(80);
+  liveState = studio!.messages.filter((message) => message.type === 'live:state').at(-1)?.live;
+  check('aynı hediye olayı ikinci kez puanlanmıyor', liveState.teamScores.find((score: any) => score.teamId === teams[0].id)?.score === 10 && liveState.gifts.filter((gift: any) => gift.eventId === 'gift-1').length === 1);
+  studio!.ws.send(JSON.stringify({ type: 'live:command', command: { type: 'emit-gift', sourceMode: 'MANUAL', eventId: 'series-1', userId: 'u3', displayName: 'Zeynep', giftId: 'rose', giftName: 'Gül', count: 1, seriesId: 'combo-1' } }));
+  await sleep(40);
+  studio!.ws.send(JSON.stringify({ type: 'live:command', command: { type: 'emit-gift', sourceMode: 'MANUAL', eventId: 'series-2', userId: 'u3', displayName: 'Zeynep', giftId: 'rose', giftName: 'Gül', count: 3, seriesId: 'combo-1', seriesComplete: true } }));
+  await sleep(80);
+  liveState = studio!.messages.filter((message) => message.type === 'live:state').at(-1)?.live;
+  check('seri hediyede yalnızca kümülatif adet farkı puanlanıyor', liveState.teamScores.find((score: any) => score.teamId === teams[0].id)?.score === 25 && liveState.gifts.find((gift: any) => gift.eventId === 'series-2')?.scoredCount === 2);
+  check('yorum ve hediye teşekkürleri Sohbet Stüdyosu akışına ulaşıyor', liveState.chatMessages.some((message: any) => message.userId === 'u1' && message.kind === 'comment') && liveState.chatMessages.some((message: any) => message.kind === 'gift-thanks'));
+  check('stüdyo ve overlay ortak LIVE durumunu eşzamanlı alıyor', overlay!.messages.filter((message) => message.type === 'live:state').at(-1)?.live.rev === liveState.rev);
+  const overlayLive = overlay!.messages.filter((message) => message.type === 'live:state').at(-1)?.live;
+  check('overlay bağlantı kimliği, olay günlüğü ve moderasyon sırlarını almıyor', overlayLive.connection.liveSessionId === '' && overlayLive.connection.accountId === '' && overlayLive.recentEvents.length === 0 && overlayLive.blockedWords.length === 0);
+
+  studio!.ws.send(JSON.stringify({ type: 'live:command', command: { type: 'emit-comment', sourceMode: 'DEMO', eventId: 'wrong-source', userId: 'u4', displayName: 'Kaynak Testi', comment: 'B' } }));
+  await sleep(60);
+  liveState = studio!.messages.filter((message) => message.type === 'live:state').at(-1)?.live;
+  check('gerçek/demo/manüel kaynaklar etkin moda karışmıyor', !liveState.recentEvents.some((event: any) => event.eventId === 'wrong-source'));
+  studio!.ws.send(JSON.stringify({ type: 'live:command', command: { type: 'disconnect' } }));
+  await sleep(60);
+  let disconnectedLive = studio!.messages.filter((message) => message.type === 'live:state').at(-1)?.live;
+  check('bağlantı kesilmesi panel durumuna doğru yansıyor', disconnectedLive.connection.status === 'disconnected');
+  studio!.ws.send(JSON.stringify({ type: 'live:command', command: { type: 'connect', mode: 'MANUAL', liveSessionId: 'selftest-live' } }));
+  await sleep(60);
+  liveState = studio!.messages.filter((message) => message.type === 'live:state').at(-1)?.live;
+  check('yeniden bağlanmada mevcut takım puanları kaybolmuyor', liveState.connection.status === 'connected' && liveState.teamScores.find((score: any) => score.teamId === teams[0].id)?.score === 25);
+  studio!.ws.send(JSON.stringify({ type: 'live:command', command: { type: 'try-live', accountId: '@mk_test_yayinci' } }));
+  await sleep(60);
+  liveState = studio!.messages.filter((message) => message.type === 'live:state').at(-1)?.live;
+  check('desteklenmeyen gerçek TikTok olayları çalışıyor gibi gösterilmiyor', liveState.connection.status === 'unsupported' && liveState.connection.mode === 'LIVE' && liveState.connection.accountId === 'mk_test_yayinci' && liveState.connection.provider === 'approved-tiktok-provider-required' && liveState.connection.capabilities.every((item: any) => item.available === false));
+  check('demo/manüel olaylar gerçek yorum veya hediye alanına yazılmıyor', liveState.lastRealComment === null && liveState.lastRealGift === null);
 
   // Özel şiir kütüphanesi: yerelde kalır ve yayın durumuna karışmaz.
   const emptyPoems = await request('GET', '/api/poems');
@@ -281,6 +339,9 @@ try {
   await sleep(100);
   const persistedArena = restartedStudio?.messages.find((message) => message.type === 'arena:studio')?.arena;
   check('Bilgi Arenası cevapları ve puanları yeniden başlatmada korunuyor', persistedArena?.answers.length === 2 && persistedArena.participants.some((participant: any) => participant.userId === 'u1' && participant.totalScore === 10));
+  const persistedLive = restartedStudio?.messages.find((message) => message.type === 'live:state')?.live;
+  check('hediye ve takım puanları JSON kaydından geri yükleniyor', persistedLive?.gifts.some((gift: any) => gift.eventId === 'gift-1') && persistedLive.teamScores.some((score: any) => score.score === 25));
+  check('sunucu yeniden başlatılınca sağlayıcı sahte biçimde bağlı görünmüyor', persistedLive?.connection.status === 'disconnected');
   restartedStudio?.ws.close();
   check('şiir kütüphanesi yeniden başlatmada korunuyor', JSON.parse((await request('GET', '/api/poems')).body)[0]?.body === privatePoem[0].body);
   const persistedMedia = JSON.parse((await request('GET', '/api/media')).body);

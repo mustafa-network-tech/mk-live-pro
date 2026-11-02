@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { ARENA_OPTION_KEYS, DEFAULT_STATE, STAGE_HEIGHT, STAGE_WIDTH, sanitizeState } from '../../../packages/shared/src/index.ts';
-import type { ArenaPublicState, StudioState } from '../../../packages/shared/src/index.ts';
+import type { ArenaPublicState, LiveStudioState, StudioState } from '../../../packages/shared/src/index.ts';
 import { connectState } from '../../../packages/shared/src/client.ts';
 import type { StateClient } from '../../../packages/shared/src/client.ts';
 import { FONT_STACKS } from '../../../packages/themes/src/index.ts';
@@ -123,6 +123,7 @@ export default function App() {
   const [state, setState] = useState<StudioState | null>(readCache);
   const [photo, setPhoto] = useState<{ id: string; url: string; mime: string } | null>(null);
   const [arena, setArena] = useState<ArenaPublicState | null>(null);
+  const [live, setLive] = useState<LiveStudioState | null>(null);
   const wantedPhoto = useRef('');
   const loadedPhoto = useRef('');
   const t = useStageTransform();
@@ -158,6 +159,7 @@ export default function App() {
         }
       },
       onArena: setArena,
+      onLive: setLive,
     });
     return () => client?.close();
   }, []);
@@ -178,6 +180,7 @@ export default function App() {
   const contestWinner = state.contest.players.find((player) => player.id === state.contest.winnerId);
   const nextTurku = state.turku.queue[0] ?? null;
   const customColor = font.color !== '';
+  const selectedChatMessage = live?.chatMessages.find((message) => message.eventId === live.selectedChatEventId && !message.blocked) ?? null;
 
   const stageStyle: CSSProperties & Record<string, string | number> = {
     transform: `translate(${t.x}px, ${t.y}px) scale(${t.scale})`,
@@ -257,6 +260,8 @@ export default function App() {
           <div key={`${state.chat.topic}:${state.chat.question}`} className="module-scene chat-scene">
             {state.chat.showTopic && state.chat.topic && <div className="topic-card"><div className="module-kicker">Günün konusu</div><FitText text={state.chat.topic} className="module-main-text" size={66} maxLines={4} fitKey={`topic:${safeW}`} /></div>}
             {state.chat.showQuestion && state.chat.question && <div className="question-card"><div className="question-mark">?</div><FitText text={state.chat.question} className="chat-question-text" size={55} maxLines={5} fitKey={`question:${safeW}`} /></div>}
+            {selectedChatMessage && <div className="live-comment-card"><strong>{selectedChatMessage.displayName}</strong><span>{selectedChatMessage.text}</span></div>}
+            {live?.tickerText && <div className="live-ticker"><span>{live.tickerText}</span></div>}
           </div>
         )}
         {isTurku && (

@@ -8,7 +8,7 @@ export const ARENA_PHASES = ['idle', 'hidden', 'reading', 'answering', 'paused',
 export type ArenaPhase = (typeof ARENA_PHASES)[number];
 
 export type ArenaTournamentStatus = 'idle' | 'running' | 'paused' | 'finished';
-export type ArenaAnswerSource = 'manual' | 'demo';
+export type ArenaAnswerSource = 'manual' | 'demo' | 'live';
 
 export interface ArenaQuestion {
   id: string;

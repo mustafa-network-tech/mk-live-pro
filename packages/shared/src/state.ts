@@ -400,8 +400,11 @@ export type ServerMessage =
   | { type: 'arena'; arena: import('./arena.ts').ArenaPublicState }
   | { type: 'arena:studio'; arena: import('./arena.ts').ArenaStudioState }
   | { type: 'arena:error'; message: string }
+  | { type: 'live:state'; live: import('./live.ts').LiveStudioState }
+  | { type: 'live:error'; message: string }
   | { type: 'hb' };
 export type ClientMessage =
   | { type: 'patch'; patch: StatePatch }
   | { type: 'media:get'; id: string }
-  | { type: 'arena:command'; command: import('./arena.ts').ArenaCommand };
+  | { type: 'arena:command'; command: import('./arena.ts').ArenaCommand }
+  | { type: 'live:command'; command: import('./live.ts').LiveCommand };

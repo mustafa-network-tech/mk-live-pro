@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { DEFAULT_STATE } from '../../../packages/shared/src/index.ts';
 import type { StatePatch, StudioState } from '../../../packages/shared/src/index.ts';
-import type { ArenaCommand, ArenaStudioState } from '../../../packages/shared/src/index.ts';
+import type { ArenaCommand, ArenaStudioState, LiveCommand, LiveStudioState } from '../../../packages/shared/src/index.ts';
 import { connectState } from '../../../packages/shared/src/client.ts';
 import type { StateClient } from '../../../packages/shared/src/client.ts';
 
@@ -20,6 +20,8 @@ export function useStudio() {
   const [loaded, setLoaded] = useState(false);
   const [arena, setArena] = useState<ArenaStudioState | null>(null);
   const [arenaError, setArenaError] = useState('');
+  const [live, setLive] = useState<LiveStudioState | null>(null);
+  const [liveError, setLiveError] = useState('');
   const clientRef = useRef<StateClient | null>(null);
   const previousArena = useRef<ArenaStudioState | null>(null);
   const outbox = useRef<StatePatch>({});
@@ -62,6 +64,11 @@ export function useStudio() {
         setArenaError('');
       },
       onArenaError: setArenaError,
+      onLive: (next) => {
+        setLive(next);
+        setLiveError('');
+      },
+      onLiveError: setLiveError,
     });
     clientRef.current = client;
     return () => {
@@ -85,5 +92,10 @@ export function useStudio() {
     if (!clientRef.current?.sendArena(command)) setArenaError('Bilgi Arenası komutu gönderilemedi; sunucu bağlantısını kontrol edin.');
   }, []);
 
-  return { state, connected, loaded, update, arena, arenaError, sendArena };
+  const sendLive = useCallback((command: LiveCommand) => {
+    setLiveError('');
+    if (!clientRef.current?.sendLive(command)) setLiveError('LIVE komutu gönderilemedi; sunucu bağlantısını kontrol edin.');
+  }, []);
+
+  return { state, connected, loaded, update, arena, arenaError, sendArena, live, liveError, sendLive };
 }

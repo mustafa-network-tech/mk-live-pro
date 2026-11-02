@@ -3,6 +3,7 @@
 import { DEFAULT_STATE, sanitizeState } from './state.ts';
 import type { ServerMessage, StatePatch, StudioState } from './state.ts';
 import type { ArenaCommand, ArenaPublicState, ArenaStudioState } from './arena.ts';
+import type { LiveCommand, LiveStudioState } from './live.ts';
 
 export interface StateClient {
   /** Yamayı gönderir; bağlı değilse false döner. */
@@ -11,6 +12,8 @@ export interface StateClient {
   requestMedia(id: string): boolean;
   /** Sunucu tarafındaki Bilgi Arenası motoruna yetkili komut yollar. */
   sendArena(command: ArenaCommand): boolean;
+  /** Merkezi LIVE sağlayıcısını ve ortak olay motorunu yönetir. */
+  sendLive(command: LiveCommand): boolean;
   close(): void;
 }
 
@@ -21,6 +24,8 @@ interface Handlers {
   onArena?(arena: ArenaPublicState): void;
   onArenaStudio?(arena: ArenaStudioState): void;
   onArenaError?(message: string): void;
+  onLive?(live: LiveStudioState): void;
+  onLiveError?(message: string): void;
 }
 
 const HEARTBEAT_TIMEOUT_MS = 40_000; // sunucu 15 sn'de bir 'hb' yollar
@@ -94,6 +99,8 @@ export function connectState(role: 'overlay' | 'studio', handlers: Handlers): St
         if (msg.type === 'arena') handlers.onArena?.(msg.arena);
         if (msg.type === 'arena:studio') handlers.onArenaStudio?.(msg.arena);
         if (msg.type === 'arena:error') handlers.onArenaError?.(msg.message);
+        if (msg.type === 'live:state') handlers.onLive?.(msg.live);
+        if (msg.type === 'live:error') handlers.onLiveError?.(msg.message);
       } catch {
         /* bozuk mesajı yok say */
       }
@@ -125,6 +132,11 @@ export function connectState(role: 'overlay' | 'studio', handlers: Handlers): St
     sendArena(command) {
       if (!ws || ws.readyState !== WebSocket.OPEN) return false;
       ws.send(JSON.stringify({ type: 'arena:command', command }));
+      return true;
+    },
+    sendLive(command) {
+      if (!ws || ws.readyState !== WebSocket.OPEN) return false;
+      ws.send(JSON.stringify({ type: 'live:command', command }));
       return true;
     },
     close() {

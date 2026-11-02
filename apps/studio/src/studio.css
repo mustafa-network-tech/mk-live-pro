@@ -227,3 +227,24 @@ input[type='color'] { display: block; margin-top: 5px; width: 56px; height: 34px
   .scene-bg-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .scene-bg-sliders { grid-template-columns: 1fr; }
 }
+
+/* Merkezi LIVE olay altyapısı */
+.live-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(340px,.85fr);gap:18px;align-items:start}
+.live-actions,.live-form-row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+.live-form-row label{flex:1;min-width:130px}
+.live-mode{font-size:12px;font-weight:800;letter-spacing:.08em;padding:6px 10px;border-radius:999px;background:#263247;color:#dbeafe}
+.live-mode.mode-live{background:#7f1d1d;color:#fecaca}
+.metric-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:16px}
+.metric-grid>div{background:#111827;border:1px solid #263247;border-radius:10px;padding:10px;min-width:0}
+.metric-grid span,.metric-grid strong{display:block;overflow:hidden;text-overflow:ellipsis}
+.metric-grid span{font-size:11px;color:#94a3b8;margin-bottom:4px}.metric-grid strong{font-size:13px}
+.live-error{padding:10px;border-radius:8px;background:#451a1a;color:#fecaca}
+.capability-list,.event-list{display:grid;gap:8px}
+.capability-list>div,.event-list>div{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 10px;border-bottom:1px solid #263247;padding:8px 0}
+.capability-list small,.event-list small{grid-column:1/-1;color:#94a3b8}
+.supported{color:#86efac}.unsupported{color:#fca5a5}
+.team-rule{display:grid;grid-template-columns:42px minmax(100px,1fr) minmax(100px,1fr) minmax(100px,1fr) 76px 90px;gap:7px;align-items:center;margin:8px 0}
+.team-rule input{min-width:0}.team-rule .team-color{padding:3px;height:40px}
+.team-rule .team-wide{grid-column:span 3}
+.tiktok-profile{display:flex;align-items:center;gap:12px;margin:16px 0}.tiktok-profile img,.tiktok-avatar{width:48px;height:48px;border-radius:50%;object-fit:cover;background:#1f2937;display:grid;place-items:center;font-weight:800}.tiktok-profile strong,.tiktok-profile small{display:block}.tiktok-profile small,.auth-uri{color:#94a3b8}.auth-uri{display:block;margin-top:12px;overflow-wrap:anywhere}
+@media(max-width:1050px){.live-grid{grid-template-columns:1fr}.metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.team-rule{grid-template-columns:42px 1fr 1fr}.team-rule strong{grid-column:2/-1}}

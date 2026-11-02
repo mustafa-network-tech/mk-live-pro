@@ -1,4 +1,6 @@
 node_modules/
+.env*
+!.env.example
 apps/*/dist/
 data/*.json
 data/*.tmp

@@ -7,7 +7,7 @@
   "scripts": {
     "build": "vite build -c apps/studio/vite.config.ts && vite build -c apps/overlay/vite.config.ts && vite build -c apps/site/vite.config.ts && vite build -c apps/legal/vite.config.ts",
     "build:hosted": "vite build -c apps/overlay/vite.hosted.config.ts && vite build -c apps/site/vite.config.ts --mode hosted && vite build -c apps/legal/vite.config.ts --mode hosted",
-    "start": "node apps/local-server/src/server.ts",
+    "start": "node --env-file-if-exists=.env.local apps/local-server/src/server.ts",
     "typecheck": "tsc --noEmit",
     "test": "node apps/local-server/src/selftest.ts"
   },

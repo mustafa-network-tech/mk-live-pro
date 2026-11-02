@@ -13,7 +13,8 @@ import { createMediaStore } from './media-store.ts';
 import { createAudioStore } from './audio-store.ts';
 import { createArenaQuestionStore } from './arena-question-store.ts';
 import { createArenaStore } from './arena-store.ts';
-import { LocalCommentProvider } from './comment-provider.ts';
+import { createLiveService } from './live-service.ts';
+import { createTikTokAuth } from './tiktok-auth.ts';
 
 const HOST = '127.0.0.1';
 const PORT = Number(process.env.PORT) || 4173;
@@ -46,10 +47,8 @@ const mediaStore = createMediaStore(DATA_DIR);
 const audioStore = createAudioStore(DATA_DIR);
 const arenaQuestionStore = createArenaQuestionStore(DATA_DIR);
 const arenaStore = createArenaStore(DATA_DIR, arenaQuestionStore);
-const manualCommentProvider = new LocalCommentProvider('manual');
-const demoCommentProvider = new LocalCommentProvider('demo');
-manualCommentProvider.start(arenaStore.submitComment);
-demoCommentProvider.start(arenaStore.submitComment);
+const liveService = createLiveService(DATA_DIR, arenaStore.submitComment, () => broadcastLive());
+const tiktokAuth = createTikTokAuth();
 
 // Opsiyonel: data/config.json -> { "overlayOrigins": ["https://proje.vercel.app"] }
 // Bu adreslerden gelen bağlantılar yalnızca overlay (salt okunur) olarak kabul edilir.
@@ -83,6 +82,11 @@ function send(res: http.ServerResponse, status: number, body: string | Buffer, t
 }
 const json = (res: http.ServerResponse, status: number, data: unknown) =>
   send(res, status, JSON.stringify(data), 'application/json; charset=utf-8');
+
+function authResultHtml(ok: boolean, message: string) {
+  const escaped = message.replace(/[&<>"']/g, (value) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[value] ?? value);
+  return `<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="2;url=/studio?page=live"><title>MK LIVE PRO — TikTok</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#07101f;color:#e5e7eb;font:16px system-ui}.box{max-width:560px;padding:32px;border:1px solid #334155;border-radius:18px;background:#111827;text-align:center}h1{color:${ok ? '#86efac' : '#fca5a5'}}a{color:#67e8f9}</style></head><body><main class="box"><h1>${ok ? 'TikTok hesabı bağlandı' : 'Bağlantı tamamlanamadı'}</h1><p>${escaped}</p><p><a href="/studio?page=live">MK LIVE PRO'ya dön</a></p></main></body></html>`;
+}
 
 function sendAudio(req: http.IncomingMessage, res: http.ServerResponse, data: Buffer, type: string) {
   const range = req.headers.range;
@@ -154,7 +158,39 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', `http://${HOST}:${PORT}`);
   const p = url.pathname;
 
-  if (p === '/api/health') return json(res, 200, { ok: true, rev: store.get().rev, clients: wss.clients.size });
+  if (p === '/api/tiktok/auth/status') {
+    if (req.method !== 'GET') return json(res, 405, { error: 'method' });
+    if (!originOk(req)) return json(res, 403, { error: 'origin' });
+    return json(res, 200, tiktokAuth.status());
+  }
+  if (p === '/api/tiktok/auth/start') {
+    if (req.method !== 'GET') return json(res, 405, { error: 'method' });
+    if (!originOk(req)) return json(res, 403, { error: 'origin' });
+    try {
+      return send(res, 302, '', 'text/plain; charset=utf-8', { Location: tiktokAuth.begin() });
+    } catch (err) {
+      return send(res, 503, authResultHtml(false, (err as Error).message), 'text/html; charset=utf-8');
+    }
+  }
+  if (p === '/auth/tiktok/callback') {
+    if (req.method !== 'GET') return send(res, 405, 'Yöntem desteklenmiyor');
+    try {
+      const auth = await tiktokAuth.callback(url.searchParams);
+      const name = auth.profile?.displayName || 'TikTok kullanıcısı';
+      return send(res, 200, authResultHtml(true, `${name} hesabı Sandbox Login Kit ile doğrulandı.`), 'text/html; charset=utf-8');
+    } catch (err) {
+      return send(res, 400, authResultHtml(false, (err as Error).message), 'text/html; charset=utf-8');
+    }
+  }
+  if (p === '/api/tiktok/auth/disconnect') {
+    if (req.method !== 'POST') return json(res, 405, { error: 'method' });
+    if (!originOk(req)) return json(res, 403, { error: 'origin' });
+    return json(res, 200, await tiktokAuth.disconnect());
+  }
+  if (p === '/api/health') {
+    const live = liveService.get().connection;
+    return json(res, 200, { ok: true, rev: store.get().rev, clients: wss.clients.size, live: { status: live.status, mode: live.mode, lastEventAt: live.lastEventAt } });
+  }
   if (p === '/api/arena/questions') {
     if (!originOk(req)) return json(res, 403, { error: 'origin' });
     if (req.method === 'GET') return json(res, 200, arenaQuestionStore.get());
@@ -296,6 +332,14 @@ function broadcastArena() {
   }
 }
 
+function sendLive(ws: WebSocket, role: string) {
+  ws.send(JSON.stringify({ type: 'live:state', live: role === 'studio' ? liveService.get() : liveService.getPublic() } satisfies ServerMessage));
+}
+
+function broadcastLive() {
+  for (const client of wss.clients) if (client.readyState === WebSocket.OPEN) sendLive(client, socketRoles.get(client) ?? 'overlay');
+}
+
 server.on('upgrade', (req: http.IncomingMessage, socket: Duplex, head: Buffer) => {
   const url = new URL(req.url ?? '/', `http://${HOST}:${PORT}`);
   const wsRole = url.searchParams.get('role');
@@ -311,6 +355,7 @@ server.on('upgrade', (req: http.IncomingMessage, socket: Duplex, head: Buffer) =
     socketRoles.set(ws, role ?? 'overlay');
     ws.send(JSON.stringify({ type: 'state', state: store.get() } satisfies ServerMessage));
     sendArena(ws, role ?? 'overlay');
+    sendLive(ws, role ?? 'overlay');
     ws.on('message', (raw) => {
       try {
         const msg = JSON.parse(raw.toString()) as ClientMessage;
@@ -322,9 +367,18 @@ server.on('upgrade', (req: http.IncomingMessage, socket: Duplex, head: Buffer) =
         if (msg.type === 'arena:command') {
           if (role !== 'studio') return;
           const command = msg.command;
+          if (command.type === 'submit-comment') {
+            const desiredMode = command.source === 'demo' ? 'DEMO' : 'MANUAL';
+            const liveConnection = liveService.get().connection;
+            if (liveConnection.status !== 'connected' || liveConnection.mode !== desiredMode) {
+              liveService.command({ type: 'connect', mode: desiredMode });
+            }
+          }
           const commandResult = command.type === 'submit-comment'
-            ? (command.source === 'demo' ? demoCommentProvider : manualCommentProvider).emit({
-                eventId: command.eventId?.trim().slice(0, 160) || crypto.randomUUID(),
+            ? liveService.command({
+                type: 'emit-comment',
+                sourceMode: command.source === 'demo' ? 'DEMO' : 'MANUAL',
+                eventId: command.eventId,
                 userId: command.userId,
                 displayName: command.displayName,
                 comment: command.comment,
@@ -332,6 +386,14 @@ server.on('upgrade', (req: http.IncomingMessage, socket: Duplex, head: Buffer) =
             : arenaStore.command(command);
           if (!commandResult.ok) ws.send(JSON.stringify({ type: 'arena:error', message: commandResult.message } satisfies ServerMessage));
           broadcastArena();
+          return;
+        }
+        if (msg.type === 'live:command') {
+          if (role !== 'studio') return;
+          const commandResult = liveService.command(msg.command);
+          if (!commandResult.ok) ws.send(JSON.stringify({ type: 'live:error', message: commandResult.message } satisfies ServerMessage));
+          broadcastArena();
+          broadcastLive();
           return;
         }
         // Yalnızca stüdyo yayın durumunu değiştirebilir; overlay salt okunur.
@@ -377,6 +439,7 @@ function shutdown() {
   clearInterval(arenaTicker);
   store.flush();
   arenaStore.flush();
+  liveService.flush();
   poemStore.flush();
   process.exit(0);
 }

@@ -1,12 +1,16 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { LIMITS } from '../../../../packages/shared/src/index.ts';
 import type { ChatState } from '../../../../packages/shared/src/index.ts';
 import type { PageProps } from '../App.tsx';
 import { Preview } from '../Preview.tsx';
 import { SceneBackgroundPicker } from '../SceneBackgroundPicker.tsx';
 
-export function ChatStudio({ s, update, ui }: PageProps) {
+export function ChatStudio({ s, update, ui, live, sendLive }: PageProps) {
   const [newQuestion, setNewQuestion] = useState('');
+  const [blockedWords, setBlockedWords] = useState('');
+  const [tickerText, setTickerText] = useState('');
+  useEffect(() => { if (live) setTickerText(live.tickerText); }, [live?.tickerText]);
+  useEffect(() => { if (live) setBlockedWords(live.blockedWords.join(', ')); }, [live?.blockedWords.join('|')]);
   const setChat = (patch: Partial<ChatState>) => update({ chat: { ...s.chat, ...patch } });
 
   const addQuestion = () => {
@@ -27,6 +31,18 @@ export function ChatStudio({ s, update, ui }: PageProps) {
     <div className="grid-2">
       <section className="col">
         <SceneBackgroundPicker concept="sohbet" s={s} update={update} />
+        <div className="card">
+          <div className="status-strip"><div><h2>Canlı olay akışı</h2><span className="hint">Merkezi EventBus üzerinden gelen yorumlar</span></div><strong>{live?.chatMessages.length ?? 0}</strong></div>
+          {!live?.chatMessages.length && <p className="hint">Henüz yorum, karşılama veya hediye teşekkür olayı yok.</p>}
+          <div className="event-list">{[...(live?.chatMessages ?? [])].reverse().slice(0, 20).map((message) => <div key={message.eventId}>
+            <b>{message.displayName}</b><button className="btn ghost" disabled={message.blocked} onClick={() => sendLive({ type: 'select-chat-message', eventId: live?.selectedChatEventId === message.eventId ? '' : message.eventId })}>{live?.selectedChatEventId === message.eventId ? 'Yayından kaldır' : 'Yayına seç'}</button>
+            <small>{message.blocked ? 'FİLTRELENDİ · ' : ''}{message.text}</small>
+          </div>)}</div>
+          <label>Kayan yazı<input value={tickerText} maxLength={240} onChange={(event) => setTickerText(event.target.value)} /></label>
+          <button className="btn" onClick={() => sendLive({ type: 'set-chat-settings', tickerText })}>Kayan yazıyı kaydet</button>
+          <label>Engelli kelimeler (virgülle)<input value={blockedWords} onChange={(event) => setBlockedWords(event.target.value)} placeholder={(live?.blockedWords ?? []).join(', ')} /></label>
+          <button className="btn" onClick={() => sendLive({ type: 'set-chat-settings', blockedWords: blockedWords.split(',').map((word) => word.trim()).filter(Boolean) })}>Moderasyon listesini kaydet</button>
+        </div>
         <div className="card">
           <div className="status-strip">
             <div><h2>Günün konusu</h2><strong>{s.chat.topic || 'Konu belirlenmedi'}</strong></div>

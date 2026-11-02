@@ -280,7 +280,7 @@ function ArenaStudio({ s, update, ui, arena, arenaError, sendArena }: PageProps)
           </div>
           <label>Yorum / cevap<input value={comment} onChange={(event) => setComment(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') submit(); }} placeholder="A, A şıkkı, Cevabım A veya cevap metni" /></label>
           <div className="arena-actions">
-            <button className="btn primary" disabled={!userId.trim() || !displayName.trim() || !comment.trim()} onClick={() => submit('manual')}>Manuel cevabı gönder</button>
+            <button className="btn primary" disabled={arena.phase !== 'answering' || !userId.trim() || !displayName.trim() || !comment.trim()} onClick={() => submit('manual')}>Manuel cevabı gönder</button>
             <button className="btn" disabled={arena.phase !== 'answering'} onClick={() => submit('demo')}>1 DEMO cevap üret</button>
           </div>
         </div>

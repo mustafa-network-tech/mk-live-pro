@@ -3,7 +3,7 @@
 TikTok LIVE Studio'ya "Bağlantı" kaynağı olarak eklenen, yerel çalışan canlı yayın sahne yöneticisi.
 *Yayınını aç, konseptini seç, sahnen hazır.*
 
-Durum: **Faz 1C + Bilgi Arenası yerel geliştirme tamamlandı**. Şiir Stüdyosu, Yarışma Merkezi, Sohbet Stüdyosu ve sade Türkü Stüdyosu hazırdır. Yarışma Merkezi'nde üç aşamalı Bilgi Arenası ayrı bir bölüm olarak bulunur; Kelime Tahmini ve Türkü Tahmini ayrı 40 soruluk yarışmalardır. Şiir Tamamlama kaldırılmıştır. Gerçek TikTok LIVE Studio testi ve Vercel overlay güncellemesi kullanıcı onayı bekliyor.
+Durum: **Faz 1C + Bilgi Arenası + merkezi LIVE olay motoru yerel geliştirme tamamlandı**. Şiir Stüdyosu, Yarışma Merkezi, Sohbet Stüdyosu ve sade Türkü Stüdyosu hazırdır. Yarışma Merkezi'nde üç aşamalı Bilgi Arenası ayrı bir bölüm olarak bulunur; Kelime Tahmini ve Türkü Tahmini ayrı 40 soruluk yarışmalardır. Demo/manüel yorum ve hediye akışı ortaktır; gerçek TikTok LIVE etkileşim sağlayıcısı doğrulanmamıştır. Şiir Tamamlama kaldırılmıştır. Vercel overlay güncellemesi kullanıcı onayı bekliyor.
 
 ## Çalıştırma
 
@@ -90,9 +90,17 @@ Overlay bağlantısı kopsa son durumu gösterir, kendiliğinden yeniden bağlan
 - Aynı kararlı kullanıcı kimliği bir soruda yalnızca bir kez sayılır. Puanı yalnızca yerel sunucu hesaplar ve turnuva `data/arena.json` içinde korunur.
 - Overlay doğru cevabı açıklama komutundan önce almaz. Sonuç ekranında doğru şık, cevap dağılımı, istatistikler ve sıralama gösterilir.
 - 30 soruluk paket panelden düzenlenebilir; tek soru JSON olarak kopyalanabilir ve paket JSON olarak dışa aktarılabilir. Varsayılan paket silinmez; düzenleme yerel kopyaya yazılır.
-- Mevcut TikTok/LIVE Studio overlay bağlantısı yorum olaylarını sağlamaz. Gerçek yorum entegrasyonu **yoktur**; panelde manuel cevap ve açıkça işaretli DEMO cevap girişi bulunur. `CommentProvider` arayüzü ileride doğrulanmış bir sağlayıcı eklenmesine hazırdır.
+- Mevcut TikTok/LIVE Studio overlay bağlantısı yorum olaylarını sağlamaz. Gerçek yorum entegrasyonu **yoktur**; panelde manuel cevap ve açıkça işaretli DEMO cevap girişi bulunur. `LiveProvider` sınırı ileride doğrulanmış bir sağlayıcı eklenmesine hazırdır.
 - Hız puanı, yorumun yerel sunucuya ulaştığı zamana göre hesaplanır. Platform olay zamanı olmadığı için yayın gecikmesine karşı kesin adalet garantisi verilmez.
 - Yarışma başlangıcı, yeni soru, son 10 saniye, süre sonu, cevap açıklaması, aşama ve şampiyon olayları mevcut Ses Efektleri yuvalarına ayrı ayrı bağlanabilir veya kapatılabilir.
+
+## Merkezi LIVE olay motoru
+
+- Bütün modüller tek `LiveService` ve `LiveEventHub` kullanır; modüller TikTok'a ayrı bağlantı açmaz.
+- Gerçek zamanlı resmî TikTok LIVE etkileşim API'si doğrulanmadığından gerçek mod bağlantı kurmaz. Demo ve manuel sağlayıcılar aynı olay/puanlama motorunu çalıştırır.
+- Yorumlar Bilgi Arenası ve Sohbet Stüdyosu'na, hediyeler ortak GiftEngine ve TeamEngine'e dağıtılır.
+- Hediye tekrarları ve kümülatif seri bildirimleri çift puanlanmaz. Takım puanları yayıncının kurallarıdır, parasal değer değildir.
+- Ayrıntılı mimari, güvenlik ve güncel resmî erişim sınırları: [docs/LIVE-EVENT-ARCHITECTURE.md](docs/LIVE-EVENT-ARCHITECTURE.md).
 
 ## Bilinen sınırlar
 
