@@ -22,6 +22,7 @@ const DATA_DIR = process.env.MK_DATA_DIR ? path.resolve(process.env.MK_DATA_DIR)
 const APPS: Record<string, string> = {
   '/studio': path.join(ROOT, 'apps/studio/dist'),
   '/overlay': path.join(ROOT, 'apps/overlay/dist'),
+  '/legal': path.join(ROOT, 'apps/legal/dist'),
 };
 const MAX_BODY = 64 * 1024;
 const MAX_LIBRARY_BODY = 12 * 1024 * 1024;
@@ -265,6 +266,8 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method !== 'GET' && req.method !== 'HEAD') return send(res, 405, 'Yöntem desteklenmiyor');
   if (p === '/') return send(res, 302, '', 'text/plain', { Location: '/studio' });
+  if (p === '/terms') return serveStatic(res, '/legal', APPS['/legal'], '/legal/terms.html');
+  if (p === '/privacy') return serveStatic(res, '/legal', APPS['/legal'], '/legal/privacy.html');
   for (const [mount, dir] of Object.entries(APPS)) {
     if (p === mount || p.startsWith(mount + '/')) return serveStatic(res, mount, dir, p);
   }

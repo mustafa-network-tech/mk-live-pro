@@ -258,6 +258,12 @@ try {
   const ov = await request('GET', '/overlay');
   const stu = await request('GET', '/studio');
   check('/overlay ve /studio sayfaları sunuluyor', ov.status === 200 && ov.body.includes('<div id="root">') && stu.status === 200);
+  const termsPage = await request('GET', '/terms');
+  const privacyPage = await request('GET', '/privacy');
+  check('/terms ve /privacy doğrudan açılıyor', termsPage.status === 200 && termsPage.body.includes('rel="canonical" href="https://mk-live-pro.vercel.app/terms"') && privacyPage.status === 200 && privacyPage.body.includes('rel="canonical" href="https://mk-live-pro.vercel.app/privacy"'));
+  check('/terms ve /privacy yenileme isteklerinde 404 vermiyor', (await request('GET', '/terms')).status === 200 && (await request('GET', '/privacy')).status === 200);
+  const legalAssetPath = /(?:src|href)="(\/legal\/assets\/[^\"]+)"/.exec(termsPage.body)?.[1];
+  check('yasal sayfa derlenmiş varlıkları sunuluyor', !!legalAssetPath && (await request('GET', legalAssetPath)).status === 200);
 
   // Kalıcılık + yeniden başlatma
   studio!.ws.send(JSON.stringify({ type: 'patch', patch: { title: 'Kalıcı Başlık' } }));

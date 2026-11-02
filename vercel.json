@@ -2,6 +2,10 @@
   "installCommand": "npm install",
   "buildCommand": "npm run build:hosted",
   "outputDirectory": "apps/overlay/dist-hosted",
-  "rewrites": [{ "source": "/overlay", "destination": "/index.html" }],
+  "rewrites": [
+    { "source": "/overlay", "destination": "/index.html" },
+    { "source": "/terms", "destination": "/terms.html" },
+    { "source": "/privacy", "destination": "/privacy.html" }
+  ],
   "headers": [{ "source": "/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }]
 }
