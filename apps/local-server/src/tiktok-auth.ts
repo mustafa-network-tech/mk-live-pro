@@ -148,12 +148,19 @@ export function createTikTokAuth() {
       lastError = 'TikTok yetkilendirme kodu döndürmedi.';
       throw new Error(lastError);
     }
-    const response = await fetch(tokenBrokerUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code, code_verifier: item.verifier, redirect_uri: redirectUri }),
-      signal: AbortSignal.timeout(15_000),
-    });
+    let response: Response;
+    try {
+      response = await fetch(tokenBrokerUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, code_verifier: item.verifier, redirect_uri: redirectUri }),
+        signal: AbortSignal.timeout(30_000),
+      });
+    } catch (err) {
+      const cause = err instanceof Error && err.cause instanceof Error ? err.cause.message : '';
+      lastError = `Güvenli TikTok token servisine ulaşılamadı${cause ? `: ${cause}` : ''}. Yeni bir giriş isteği başlatın.`;
+      throw new Error(lastError);
+    }
     const token = await response.json() as TokenResponse;
     if (!response.ok || !token.access_token) {
       lastError = safeMessage(token.error_description ?? token.error, 'TikTok token değişimi başarısız oldu.');
