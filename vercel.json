@@ -3,7 +3,9 @@
   "buildCommand": "npm run build:hosted",
   "outputDirectory": "apps/overlay/dist-hosted",
   "rewrites": [
-    { "source": "/overlay", "destination": "/index.html" },
+    { "source": "/overlay", "destination": "/overlay.html" },
+    { "source": "/about", "destination": "/about.html" },
+    { "source": "/support", "destination": "/support.html" },
     { "source": "/terms", "destination": "/terms.html" },
     { "source": "/privacy", "destination": "/privacy.html" }
   ],

@@ -7,5 +7,11 @@ export default defineConfig({
   root: fileURLToPath(new URL('.', import.meta.url)),
   base: '/',
   plugins: [react()],
-  build: { outDir: 'dist-hosted', emptyOutDir: true, target: 'chrome100', sourcemap: false },
+  build: {
+    outDir: 'dist-hosted',
+    emptyOutDir: true,
+    target: 'chrome100',
+    sourcemap: false,
+    rollupOptions: { input: fileURLToPath(new URL('./overlay.html', import.meta.url)) },
+  },
 });
